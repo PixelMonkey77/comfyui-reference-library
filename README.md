@@ -1,7 +1,8 @@
 # Library Image + Tagged Prompt for ComfyUI
 
 Tag your reference images, videos and audio in a prompt with **`@name`**, and the **Tagged Prompt**
-node wires them into API nodes with auto-growing media ports (**Nano Banana 2.1**, **Seedance**, …)
+node wires them into API nodes with auto-growing media ports (**Nano Banana**, **Seedream**,
+**GPT Image**, **FLUX 3**, **Seedance**, … see [Supported model nodes](#supported-model-nodes))
 when you queue. Files stay where they are on disk: no Load nodes, no copying into ComfyUI's `input`
 folder.
 
@@ -20,6 +21,7 @@ folder.
 - [Getting started](#getting-started)
 - [Tag colors](#tag-colors)
 - [What happens when you queue](#what-happens-when-you-queue)
+- [Supported model nodes](#supported-model-nodes)
 - [Files that aren't in a library](#files-that-arent-in-a-library)
 - [Libraries in detail](#libraries-in-detail)
 - [Library Image / Video / Audio nodes](#library-image--video--audio-nodes)
@@ -118,6 +120,28 @@ For each node with auto-grow media ports whose prompt contains `@tags`:
 
 A stray `@word` typed straight into a model's own prompt is left as text, and e-mail addresses like
 `me@x.com` are ignored.
+
+## Supported model nodes
+
+Any partner/API node whose media inputs grow as you connect them (`images.image_1`, `image_2`, …)
+works. The limits come from the node itself and follow the model selected on it: when a prompt tags
+more files than the model takes, the node shows it and queueing is refused with a clear message,
+before anything is sent.
+
+| Node | Model | Images | Videos | Audio |
+|---|---|---|---|---|
+| Nano Banana 2.1 | all models | 14 | | |
+| ByteDance Seedream 4.5 & 5.0 | 5.0 lite | 14 | | |
+| | 5.0 pro, 5.0 flash, 4.5, 4.0 | 10 | | |
+| OpenAI GPT Image 2.5 | all models | 16 | | |
+| FLUX 3 Image | | 10 | | |
+| Tencent HY Image: Edit | HY Image 3.5 | 5 (at least 1) | | |
+| Qwen Image 3 Edit | 3.0 pro, 3.0 | 3 (at least 1) | | |
+| ByteDance Seedance 2.5 Reference to Video | 2.5, 2.5 Draft | 30 | 10 | 10 |
+| | 2.0, 2.0 Fast, 2.0 Mini | 9 | 3 | 3 |
+
+Tested by building the prompt each node receives (which file goes on which input, and how the tags
+are rewritten), not by paid runs. Seedance says `Image 1` / `Video 1` / `Audio 1`, the others `image 1`.
 
 ## Files that aren't in a library
 

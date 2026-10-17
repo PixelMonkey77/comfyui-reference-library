@@ -342,25 +342,35 @@ export function renameOutput(node, out, name) {
   node.properties.tp_out = ids;
 }
 
-/** Largest auto-grow port count declared for a kind on this node type (e.g. 14 images for Nano Banana 2.1). */
+/**
+ * How many auto-grow ports of a kind the node accepts (e.g. 14 images for Nano Banana 2.1). Many API
+ * nodes nest their inputs under a model choice (a dynamic combo) whose options differ: Seedream 5.0
+ * pro takes 10 images, 5.0 lite 14. The option selected on the node counts; if it can't be told, the
+ * largest of all options.
+ */
 export function autogrowMax(uiNode, kind) {
   const def = nodeDefOf(uiNode)?.input;
   if (!def) return null;
-  let cached = autogrowCache.get(def); // node definitions don't change while the page is open
-  if (!cached) autogrowCache.set(def, (cached = {}));
-  if (kind in cached) return cached[kind];
   let max = null;
   const re = new RegExp(`^${kind}_\\d+$`);
-  const walk = (v) => {
+  const walk = (v, prefix) => {
     if (!v || typeof v !== "object") return;
     if (Array.isArray(v.names) && v.names.some((n) => re.test(n))) max = Math.max(max ?? 0, v.names.length);
-    for (const x of Object.values(v)) walk(x);
+    for (const [key, x] of Object.entries(v)) {
+      if (Array.isArray(x) && x[0] === "COMFY_DYNAMICCOMBO_V3" && Array.isArray(x[1]?.options)) {
+        // Its widget is named by the path ("model", "model.mode", ...); only the chosen option's inputs exist.
+        const name = `${prefix}${key}`;
+        const value = getWidget(uiNode, name)?.value;
+        const chosen = x[1].options.filter((o) => o?.key === value);
+        for (const o of chosen.length ? chosen : x[1].options) walk(o?.inputs, `${name}.`);
+      } else {
+        walk(x, prefix);
+      }
+    }
   };
-  walk(def);
-  return (cached[kind] = max);
+  walk(def, "");
+  return max;
 }
-
-const autogrowCache = new WeakMap();
 
 /** Every Tagged Prompt node in the open workflow, including those inside subgraphs. */
 export function allPromptNodes() {
