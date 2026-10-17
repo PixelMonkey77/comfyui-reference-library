@@ -465,6 +465,33 @@ async function walkthrough() {
   await ev(() => window.app.graph.remove(window.__shot.nb));
   await sleep(500);
 
+  // 13. Older models with one batch input (Nano Banana Pro): text -> prompt, images -> images
+  await ev(async () => {
+    const app = window.app;
+    const node = window.__shot.node;
+    const pro = window.LiteGraph.createNode("GeminiImage2Node");
+    app.graph.add(pro);
+    pro.pos = [720, 60];
+    node.connect(0, pro, pro.inputs.findIndex((i) => i.name === "prompt"));
+    node.connect(node.outputs.findIndex((o) => o.name === "images"), pro, pro.inputs.findIndex((i) => i.name === "images"));
+    app.canvas.setDirty(true, true);
+    window.__shot.sels.pro = `.lg-node[data-node-id="${pro.id}"]`;
+    window.__shot.pro = pro;
+    await new Promise((r) => setTimeout(r, 1500));
+    // Mark the two ports for the callouts.
+    const slot = (sel, re) => [...document.querySelectorAll(sel + " .lg-slot")].find((e) => re.test(e.textContent.trim()));
+    slot(window.__shot.nodeSel, /^images/)?.setAttribute("data-shot-target", "tp-images");
+    slot(window.__shot.sels.pro, /^images/)?.setAttribute("data-shot-target", "pro-images");
+  });
+  await sleep(1500);
+  const PRO = { sel: "{pro}" };
+  await shot("13_one_image_input_models", [NODE, PRO], [
+    { target: { sel: '[data-shot-target="tp-images"]' }, text: "images: all tagged images as one batch", side: "bottom", from: NODE, dx: 140, dy: 40 },
+    { target: { sel: '[data-shot-target="pro-images"]' }, text: "…into the model's images input", side: "top", from: PRO, dx: 40, dy: 30 },
+  ]);
+  await ev(() => window.app.graph.remove(window.__shot.pro));
+  await sleep(500);
+
   // 11. A file that isn't in a library: a Load Image plugged into the Tagged Prompt
   await mouse("mouseMoved", 5, 5);
   await ev(async () => {

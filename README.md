@@ -34,6 +34,7 @@ the same two nodes, however many references you use.
 - [Tag colors](#tag-colors)
 - [What happens when you queue](#what-happens-when-you-queue)
 - [Supported model nodes](#supported-model-nodes)
+- [Older models with one image input](#older-models-with-one-image-input)
 - [Files that aren't in a library](#files-that-arent-in-a-library)
 - [Outputs: every tagged file, and a batch](#outputs-every-tagged-file-and-a-batch)
 - [Libraries in detail](#libraries-in-detail)
@@ -199,13 +200,38 @@ Reference-to-video nodes (Seedance, MiniMax H3, Vidu, HeyGen) are told `Image 1`
 `Audio 1`; the others `image 1`.
 
 **Models with one `images` batch input** (Nano Banana Pro, Nano Banana, …): connect the Tagged Prompt's
-`images` output too, see [Outputs](#outputs-every-tagged-file-and-a-batch).
+`images` output too, see [Older models with one image input](#older-models-with-one-image-input).
 
 **Not supported:** nodes with a single image input, or one batch input, such as **LTX 2.5** (API: Image /
 Audio to Video), the **LTX-2** open-model nodes, and the **MiniMax H3** open model (Reference to Video takes
 `ref_images` as one batch). Wire files into those by hand (the `@name` outputs help), or try the `images`
 batch output where the model accepts a batch. A Tagged Prompt with `@tags` whose text reaches only such a
 node, with none of its outputs used, won't queue rather than send raw tags.
+
+## Older models with one image input
+
+Using an old reliable model like **Nano Banana Pro**, with just one `images` input? No problem. These
+models take all their reference images as one batch, so the Tagged Prompt can't fill their inputs on its
+own. That's what its **`images`** output is for. Connect two wires:
+
+1. **`text`** → the model's **`prompt`**
+2. **`images`** → the model's **`images`**
+
+<img src="docs/images/13_one_image_input_models.png" width="760" alt="Tagged Prompt wired to Nano Banana Pro: text into prompt, images into images">
+
+That's it. When you queue:
+
+- The `images` output becomes a batch of every tagged image, in the order of the numbers on the outputs
+  (`@Alex (1)` first, `@Sir_Josef (2)` second, …) and under the thumbnails.
+- The prompt is rewritten to match: `@Alex` becomes "image 1", `@Sir_Josef` "image 2", and so on.
+- A batch needs one size for all images, so each image is **fitted inside the size of image 1 and padded**
+  (black bars). Nothing is cropped away.
+
+**Want control over the resizing?** Skip `images` and use the separate `@name` outputs instead: resize,
+crop or pad each image your way, then batch them with your own nodes, in the order of their numbers.
+
+**Forgot the `images` wire?** The queue is refused with a message saying the model gets the text but none
+of the tagged files, rather than running without your references.
 
 ## Files that aren't in a library
 
@@ -248,16 +274,9 @@ files alike, plus one **`images`** output with all tagged images as a batch. The
 where that file goes: **`@Coin (1)`** is `image_1` (`(2)` is `image_2`, …). The numbers follow First/Last
 and match the numbers under the thumbnails and the "image 1, image 2…" in the prompt.
 
-**For models with a single `images` input** (Nano Banana Pro, Nano Banana, and other models that take a
-batch instead of growing inputs), connect two wires:
-
-- `text` → the model's `prompt`
-- `images` → the model's `images`
-
-The prompt is rewritten in the batch's order ("image 1" is the first image of the batch), so the numbers
-line up. The batch makes every image the size of image 1 by **fitting it inside and padding** (black
-bars), so nothing is cut off. If you'd rather resize or crop each image yourself, use the separate
-`@name` outputs instead, and batch them with your own nodes in the order of their numbers.
+The `images` output is made for models with a single `images` input (Nano Banana Pro, …): see
+[Older models with one image input](#older-models-with-one-image-input). Images are padded to the size of
+image 1; for your own resizing, batch the `@name` outputs yourself.
 
 The `@name` outputs also work anywhere else an image (video, audio) goes: previews, upscalers,
 IP-Adapter, … An output that is wired to something stays even if its tag is removed from the text.
