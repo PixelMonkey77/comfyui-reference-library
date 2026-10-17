@@ -282,9 +282,10 @@ export function bindPrompt(output) {
     const tags = Object.values(node.inputs ?? {}).filter((v) => typeof v === "string").flatMap(mentionsIn);
     if (!tags.length) continue;
     const title = nodeForExecId(id)?.title ?? "Tagged Prompt";
-    errors.push(`${title}: its @tags (@${tags[0]}…) can't be sent: its text doesn't reach a model node with image, `
-      + "video or audio inputs it can fill. Connect it to one (see Supported model nodes in the README), "
-      + "or wire the files by hand and describe them without @tags.");
+    errors.push(`${title}: its @tags (@${tags[0]}…) can't be sent: the model it feeds gets none of the tagged `
+      + "files. For a model with one \"images\" input (Nano Banana Pro, …), also connect the Tagged Prompt's "
+      + "\"images\" output to it (or its @name outputs, batched your way). Otherwise connect it to a model with "
+      + "image_1, image_2… inputs (see Supported model nodes in the README).");
   }
   return errors;
 }
