@@ -71,16 +71,19 @@ export function bindPrompt(output) {
   //    "text"): a library file's "@name" output reads from that file's loader, a plugged-in file's from
   //    the plugged-in file itself, and "images" from a batch built below, once the order is known.
   const outputsUsed = new Set(); // Tagged Prompts with any of those outputs wired
+  const fileReaders = new Map(); // Tagged Prompt id -> ids of the nodes reading those outputs
   const batchReaders = new Map(); // Tagged Prompt id -> [[consumer, input key]] reading "images"
   for (const [id, node] of Object.entries(output)) {
     if (node.class_type !== NODE_TYPE) continue;
     const uiNode = nodeForExecId(id);
-    for (const consumer of Object.values(output)) {
+    for (const [consumerId, consumer] of Object.entries(output)) {
       for (const [k, v] of Object.entries(consumer.inputs ?? {})) {
         if (!Array.isArray(v) || String(v[0]) !== String(id) || !(v[1] > 0)) continue;
         const out = uiNode?.outputs?.[v[1]];
         const outName = out?.name;
         outputsUsed.add(id);
+        if (!fileReaders.has(id)) fileReaders.set(id, new Set());
+        fileReaders.get(id).add(consumerId);
         if (isBatchOutput(out)) {
           if (!batchReaders.has(id)) batchReaders.set(id, []);
           batchReaders.get(id).push([consumer, k]);
@@ -228,6 +231,14 @@ export function bindPrompt(output) {
     if (!src || bound.has(id)) continue;
     bound.add(id);
     errors.push(...planProblems(plan, tpUi.title, tpUi));
+    // The model reading the text must also get the files: one of the outputs has to reach it
+    // (directly, or through resize / batch nodes). Outputs that only go to previews don't count.
+    const readers = textReaders(output, id);
+    if (plan.rows.some((r) => r.ok) && readers.length && !reaches(output, fileReaders.get(id), readers)) {
+      const model = nodeForExecId(readers[0])?.title ?? output[readers[0]]?._meta?.title ?? "The model";
+      errors.push(`${tpUi.title}: ${model} gets its text but none of the tagged files. Connect the Tagged Prompt's `
+        + `"images" output to ${model}'s images input (or its @name outputs, batched your way).`);
+    }
     const labelOf = new Map(plan.rows.filter((r) => r.ok && r.label).map((r) => [tagKey(r.tok), r.label]));
     for (const [k, v] of Object.entries(src.inputs ?? {})) {
       if (typeof v === "string") src.inputs[k] = v.replace(mentionRe(), (all, pre, tok) => (labelOf.has(tagKey(tok)) ? `${pre}${labelOf.get(tagKey(tok))}` : all));
@@ -291,6 +302,32 @@ export function bindPrompt(output) {
 }
 
 const BATCH_MAX = 64; // LibraryImageBatch's inputs
+
+/** Nodes whose prompt input gets this Tagged Prompt's text (directly or through string nodes). */
+function textReaders(output, tpId) {
+  return Object.entries(output).filter(([nid, n]) => n.class_type !== NODE_TYPE && Object.entries(n.inputs ?? {})
+    .some(([k, v]) => isPromptKey(k) && Array.isArray(v) && promptChain(output, v).includes(String(tpId)))).map(([nid]) => nid);
+}
+
+/** True if any node in `from` is, or feeds (within a few nodes), one of `targets`. */
+function reaches(output, from, targets) {
+  const want = new Set(targets.map(String));
+  let frontier = [...(from ?? [])].map(String);
+  const seen = new Set(frontier);
+  for (let depth = 0; frontier.length && depth < 8; depth++) {
+    if (frontier.some((n) => want.has(n))) return true;
+    const next = [];
+    for (const [nid, n] of Object.entries(output)) {
+      if (seen.has(nid)) continue;
+      if (Object.values(n.inputs ?? {}).some((v) => Array.isArray(v) && frontier.includes(String(v[0])))) {
+        seen.add(nid);
+        next.push(nid);
+      }
+    }
+    frontier = next;
+  }
+  return false;
+}
 
 /** The Tagged Prompt's plugged-in files as they are in the API prompt: [{ kind, input, link, before }]. */
 function apiExtras(tpUi, src) {

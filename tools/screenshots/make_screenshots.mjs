@@ -32,7 +32,12 @@ const CDP_PORT = PORT + 1000;
 const LOCAL = process.env.LOCALAPPDATA ?? "";
 const COMFY = process.env.COMFYUI_DIR ?? path.join(LOCAL, "Programs", "@comfyorgcomfyui-electron", "resources", "ComfyUI");
 const PYTHON = process.env.COMFYUI_PYTHON ?? path.join(os.homedir(), "Documents", "ComfyUI", ".venv", "Scripts", "python.exe");
-const FRONTEND = process.env.COMFYUI_FRONTEND ?? path.join(COMFY, "web_custom_versions", "desktop_app");
+// The frontend ComfyUI itself serves: the comfyui_frontend_package in its Python environment (what
+// ComfyUI Desktop loads), else the copy bundled with the Desktop app.
+const FRONTEND = process.env.COMFYUI_FRONTEND ?? [
+  path.join(path.dirname(path.dirname(PYTHON)), "Lib", "site-packages", "comfyui_frontend_package", "static"),
+  path.join(COMFY, "web_custom_versions", "desktop_app"),
+].find((p) => fs.existsSync(p));
 const CHROME = process.env.CHROME ?? ["C:/Program Files/Google/Chrome/Application/chrome.exe",
   "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe"]
   .find((p) => fs.existsSync(p));
