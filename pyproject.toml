@@ -1,0 +1,18 @@
+[project]
+name = "comfyui-library-image"
+description = "Tag reference images, videos and audio in a prompt with @name and have them wired into API nodes (Nano Banana, Seedance, ...) from named asset libraries that reference files in place."
+version = "0.1.0"
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.10"
+# Uses only what ComfyUI already ships: torch, numpy, Pillow, PyAV, aiohttp.
+dependencies = []
+
+[project.urls]
+# Repository = "https://github.com/<you>/comfyui-library-image"   (set after creating the GitHub repo)
+
+[tool.comfy]
+PublisherId = ""   # your publisher id on registry.comfy.org, only needed to publish there
+DisplayName = "Library Image + Tagged Prompt"
+Icon = ""
+includes = []
