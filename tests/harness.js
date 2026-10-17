@@ -209,5 +209,7 @@ await scenario("claims-test02", async () => {
 });
 
 await m.library.deleteLibrary(harnessLib);
+// Save the cleaned-up canvas, so a reload never restores a scenario's nodes from an autosave made mid-run.
+app.extensionManager.workflow.activeWorkflow?.changeTracker?.checkState();
 window.__harness = results;
 JSON.stringify(results, null, 1)

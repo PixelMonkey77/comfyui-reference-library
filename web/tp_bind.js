@@ -3,7 +3,8 @@
 import { assetKind, isPromptKey, KINDS, library, LOADERS, mediaPorts, mentionRe, mentionsIn, portNum, tagKey } from "./common.js";
 import { nodeForExecId, outputTypeOf } from "./compat.js";
 import {
-  apiSourceName, autogrowMax, claimsOf, enabledLibs, EXTRA_RE, isBefore, NODE_TYPE, outputAsset, unpluggedText,
+  apiSourceName, autogrowMax, claimsOf, enabledLibs, EXTRA_RE, extraOutputKey, isBatchOutput, isBefore, NODE_TYPE,
+  outputAsset, unpluggedText,
 } from "./tp_model.js";
 import { claimSpec, placeTags } from "./tp_plan.js";
 
@@ -66,8 +67,11 @@ export function bindPrompt(output) {
     return loaders.get(asset.id);
   };
 
-  // 0. Tagged Prompt "@name" outputs exist only on the canvas (the server node has just "text"):
-  //    point whatever reads them at the asset's loader instead.
+  // 0. A Tagged Prompt's outputs after "text" exist only on the canvas (the server node has just
+  //    "text"): a library file's "@name" output reads from that file's loader, a plugged-in file's from
+  //    the plugged-in file itself, and "images" from a batch built below, once the order is known.
+  const outputsUsed = new Set(); // Tagged Prompts with any of those outputs wired
+  const batchReaders = new Map(); // Tagged Prompt id -> [[consumer, input key]] reading "images"
   for (const [id, node] of Object.entries(output)) {
     if (node.class_type !== NODE_TYPE) continue;
     const uiNode = nodeForExecId(id);
@@ -76,6 +80,20 @@ export function bindPrompt(output) {
         if (!Array.isArray(v) || String(v[0]) !== String(id) || !(v[1] > 0)) continue;
         const out = uiNode?.outputs?.[v[1]];
         const outName = out?.name;
+        outputsUsed.add(id);
+        if (isBatchOutput(out)) {
+          if (!batchReaders.has(id)) batchReaders.set(id, []);
+          batchReaders.get(id).push([consumer, k]);
+          continue;
+        }
+        const xkey = uiNode ? extraOutputKey(uiNode, out) : null;
+        if (xkey) {
+          const c = claimsOf(uiNode).get(xkey);
+          const link = c?.source?.extra ? node.inputs?.[c.source.extra.input] : null;
+          if (Array.isArray(link)) consumer.inputs[k] = link;
+          else errors.push(`${uiNode.title}: output ${outName}: ${unpluggedText(c?.claim)}`);
+          continue;
+        }
         const res = (uiNode && out && outputAsset(uiNode, out)) || { status: "unknown", asset: null };
         if (res.status !== "ok") {
           errors.push(`${uiNode?.title ?? "Tagged Prompt"}: output ${outName ?? `#${v[1]}`} ${problem(res, uiNode)}`);
@@ -85,6 +103,11 @@ export function bindPrompt(output) {
       }
     }
   }
+
+  // Order of the tagged files for Tagged Prompts whose outputs are used, numbered without a target
+  // ("@Coin (1)" = image 1): taken now, before any target rewrites their text.
+  const standalone = new Map([...outputsUsed].filter((id) => nodeForExecId(id))
+    .map((id) => [id, standalonePlan(nodeForExecId(id), output[id])]));
 
   for (const [id, node] of Object.entries(Object.assign({}, output))) {
     const inputs = node.inputs ?? {};
@@ -136,12 +159,7 @@ export function bindPrompt(output) {
     }
 
     // Plugged-in files of the Tagged Prompt, as they are in the API prompt.
-    const extras = [];
-    for (const inp of tpUi?.inputs ?? []) {
-      const m = EXTRA_RE.exec(inp.name);
-      const link = m && src.inputs?.[inp.name];
-      if (Array.isArray(link)) extras.push({ kind: m[1], input: inp.name, link, before: isBefore(tpUi, inp.name) });
-    }
+    const extras = apiExtras(tpUi, src);
     // Names of non-library files: the Tagged Prompt's claims; for a prompt typed into the target
     // itself, the files wired into it by hand answer to their names.
     let claims;
@@ -161,15 +179,7 @@ export function bindPrompt(output) {
     const plan = placeTags({ title: label, kinds, extras, claims, tokens, resolve: (tok) => library.resolve(tok, libs) });
 
     // Problems stop the queue (one message per kind of overflow).
-    const said = new Set();
-    const say = (msg) => !said.has(msg) && (said.add(msg), errors.push(msg));
-    for (const r of plan.rows) {
-      if (r.status === "unplugged") say(`${label}: @${r.tok}: ${unpluggedText(r.claim)}`);
-      // Without a Tagged Prompt, an unknown "@word" typed into the model's own prompt is just text.
-      else if (!r.claim && r.status !== "ok" && (tpUi || r.status !== "unknown")) say(`${label}: @${r.tok} ${problem(r, tpUi)}`);
-      else if (r.unsupported) say(`${label}: @${r.tok} can't be placed: ${r.unsupported}.`);
-    }
-    for (const x of plan.extras) if (x.unsupported) say(`${label}: ${tpUi?.title ?? "Tagged Prompt"} ${x.input} can't be placed: ${x.unsupported}.`);
+    errors.push(...planProblems(plan, label, tpUi));
 
     // 1. wire library files and plugged-in files onto the ports the plan picked
     for (const r of plan.rows) {
@@ -209,6 +219,46 @@ export function bindPrompt(output) {
       inputs[pick.key] = [copy.get(pick.chain[0]), pick.v[1]];
     }
   }
+  // Tagged Prompts whose outputs are used but whose text reached no model they could fill (e.g. the
+  // text goes to Nano Banana Pro, which takes the "images" batch): tags become "image 1", "image 2"… in
+  // output order, the same order as the batch and the "(1)" on the outputs.
+  for (const [id, plan] of standalone) {
+    const src = output[id];
+    const tpUi = nodeForExecId(id);
+    if (!src || bound.has(id)) continue;
+    bound.add(id);
+    errors.push(...planProblems(plan, tpUi.title, tpUi));
+    const labelOf = new Map(plan.rows.filter((r) => r.ok && r.label).map((r) => [tagKey(r.tok), r.label]));
+    for (const [k, v] of Object.entries(src.inputs ?? {})) {
+      if (typeof v === "string") src.inputs[k] = v.replace(mentionRe(), (all, pre, tok) => (labelOf.has(tagKey(tok)) ? `${pre}${labelOf.get(tagKey(tok))}` : all));
+    }
+  }
+  // "images": the tagged images as one batch, in that order (padded to one size, nothing cropped).
+  for (const [id, readers] of batchReaders) {
+    const plan = standalone.get(id);
+    const tpUi = nodeForExecId(id);
+    if (!plan) continue;
+    const items = [
+      ...plan.rows.filter((r) => r.ok && r.asset && !r.shared && r.kind === "image").map((r) => ({ n: r.n, link: [loaderFor(r.asset), 0] })),
+      ...plan.extras.filter((x) => x.kind === "image" && x.n).map((x) => ({ n: x.n, link: x.link })),
+    ].sort((a, b) => a.n - b.n);
+    if (!items.length) {
+      errors.push(`${tpUi.title}: its "images" output has no tagged images to send.`);
+      continue;
+    }
+    if (items.length > BATCH_MAX) {
+      errors.push(`${tpUi.title}: its "images" output can batch at most ${BATCH_MAX} images (${items.length} are tagged).`);
+      continue;
+    }
+    const batchId = newId("libbatch");
+    output[batchId] = {
+      class_type: "LibraryImageBatch",
+      inputs: { mode: "pad", ...Object.fromEntries(items.map((it, i) => [`image_${i + 1}`, it.link])) },
+      _meta: { title: `${tpUi.title}: images` },
+    };
+    for (const [consumer, k] of readers) consumer.inputs[k] = [batchId, 0];
+  }
+
   // The server-side Tagged Prompt has only "text": its extra inputs were moved onto the targets above.
   for (const node of Object.values(output)) {
     if (node.class_type !== NODE_TYPE) continue;
@@ -237,6 +287,41 @@ export function bindPrompt(output) {
       + "or wire the files by hand and describe them without @tags.");
   }
   return errors;
+}
+
+const BATCH_MAX = 64; // LibraryImageBatch's inputs
+
+/** The Tagged Prompt's plugged-in files as they are in the API prompt: [{ kind, input, link, before }]. */
+function apiExtras(tpUi, src) {
+  const extras = [];
+  for (const inp of tpUi?.inputs ?? []) {
+    const m = EXTRA_RE.exec(inp.name);
+    const link = m && src?.inputs?.[inp.name];
+    if (Array.isArray(link)) extras.push({ kind: m[1], input: inp.name, link, before: isBefore(tpUi, inp.name) });
+  }
+  return extras;
+}
+
+/** Placement without a target: First files, tags, Last files, numbered 1, 2, … per kind. */
+function standalonePlan(tpUi, src) {
+  const kinds = Object.fromEntries(KINDS.map((k) => [k, { has: true, max: null, used: new Set(), assetPorts: new Map(), portName: null }]));
+  const libs = enabledLibs(tpUi);
+  return placeTags({ title: tpUi.title, kinds, extras: apiExtras(tpUi, src), claims: claimSpec(claimsOf(tpUi)),
+    tokens: stringsOf(src).flatMap(mentionsIn), resolve: (tok) => library.resolve(tok, libs) });
+}
+
+/** Error messages for a plan's rows and plugged-in files (one per kind of overflow). */
+function planProblems(plan, label, tpUi) {
+  const out = [];
+  const say = (msg) => !out.includes(msg) && out.push(msg);
+  for (const r of plan.rows) {
+    if (r.status === "unplugged") say(`${label}: @${r.tok}: ${unpluggedText(r.claim)}`);
+    // Without a Tagged Prompt, an unknown "@word" typed into the model's own prompt is just text.
+    else if (!r.claim && r.status !== "ok" && (tpUi || r.status !== "unknown")) say(`${label}: @${r.tok} ${problem(r, tpUi)}`);
+    else if (r.unsupported) say(`${label}: @${r.tok} can't be placed: ${r.unsupported}.`);
+  }
+  for (const x of plan.extras) if (x.unsupported) say(`${label}: ${tpUi?.title ?? "Tagged Prompt"} ${x.input} can't be placed: ${x.unsupported}.`);
+  return out;
 }
 
 /** Why a tag can't be used: the end of an error sentence. */

@@ -1293,17 +1293,74 @@ class TaggedPrompt:
         return (text,)
 
 
+class LibraryImageBatch:
+    """Stacks the Tagged Prompt's images into one batch (for models with a single `images` input, like
+    Nano Banana Pro). Added at queue time for the Tagged Prompt's "images" output; never on the canvas.
+
+    A batch needs one size: every image is made the size of the first. "pad" (default) fits each one
+    inside and fills the rest, so nothing is cut off; "crop" fills and cuts the edges (ComfyUI's Batch
+    Images behaviour); "stretch" ignores the aspect ratio."""
+
+    MAX_IMAGES = 64
+    # Internal: keeps it out of the node search (the Tagged Prompt adds it when needed).
+    DEPRECATED = True
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {"mode": (["pad", "crop", "stretch"], {"default": "pad"})},
+            "optional": {f"image_{i}": ("IMAGE",) for i in range(1, cls.MAX_IMAGES + 1)},
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("images",)
+    FUNCTION = "batch"
+    CATEGORY = "image/library"
+
+    def batch(self, mode="pad", **images):
+        import comfy.utils
+        keys = sorted((k for k, v in images.items() if k.startswith("image_") and v is not None), key=lambda k: int(k[6:]))
+        frames = [f[None] for k in keys for f in images[k]]  # every image of every input, in order
+        if not frames:
+            raise ValueError("No images to batch.")
+        h, w = frames[0].shape[1:3]
+        c = min(f.shape[-1] for f in frames)
+        out = []
+        for f in frames:
+            f = f[..., :c]
+            fh, fw = f.shape[1:3]
+            if (fh, fw) == (h, w):
+                out.append(f)
+                continue
+            src = f.movedim(-1, 1)
+            if mode == "stretch":
+                out.append(comfy.utils.common_upscale(src, w, h, "lanczos", "disabled").movedim(1, -1))
+            elif mode == "crop":
+                out.append(comfy.utils.common_upscale(src, w, h, "lanczos", "center").movedim(1, -1))
+            else:
+                scale = min(w / fw, h / fh)
+                nw, nh = max(1, round(fw * scale)), max(1, round(fh * scale))
+                fitted = comfy.utils.common_upscale(src, nw, nh, "lanczos", "disabled").movedim(1, -1)
+                canvas = torch.zeros((1, h, w, c), dtype=f.dtype, device=f.device)
+                top, left = (h - nh) // 2, (w - nw) // 2
+                canvas[:, top:top + nh, left:left + nw, :] = fitted
+                out.append(canvas)
+        return (torch.cat(out, dim=0).clamp(0, 1),)
+
+
 NODE_CLASS_MAPPINGS = {
     "LibraryImage": LibraryImage,
     "LibraryVideo": LibraryVideo,
     "LibraryAudio": LibraryAudio,
     "TaggedPrompt": TaggedPrompt,
+    "LibraryImageBatch": LibraryImageBatch,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "LibraryImage": "Library Image",
     "LibraryVideo": "Library Video",
     "LibraryAudio": "Library Audio",
     "TaggedPrompt": "Tagged Prompt",
+    "LibraryImageBatch": "Tagged Images Batch (internal)",
 }
 WEB_DIRECTORY = "./web"
 

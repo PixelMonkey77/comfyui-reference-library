@@ -35,6 +35,7 @@ the same two nodes, however many references you use.
 - [What happens when you queue](#what-happens-when-you-queue)
 - [Supported model nodes](#supported-model-nodes)
 - [Files that aren't in a library](#files-that-arent-in-a-library)
+- [Outputs: every tagged file, and a batch](#outputs-every-tagged-file-and-a-batch)
 - [Libraries in detail](#libraries-in-detail)
 - [Library Image / Video / Audio nodes](#library-image--video--audio-nodes)
 - [Safety](#safety)
@@ -197,10 +198,14 @@ are rewritten), not by paid runs:
 Reference-to-video nodes (Seedance, MiniMax H3, Vidu, HeyGen) are told `Image 1`, `Video 1`,
 `Audio 1`; the others `image 1`.
 
+**Models with one `images` batch input** (Nano Banana Pro, Nano Banana, …): connect the Tagged Prompt's
+`images` output too, see [Outputs](#outputs-every-tagged-file-and-a-batch).
+
 **Not supported:** nodes with a single image input, or one batch input, such as **LTX 2.5** (API: Image /
 Audio to Video), the **LTX-2** open-model nodes, and the **MiniMax H3** open model (Reference to Video takes
-`ref_images` as one batch). Wire files into those by hand and describe them in words; a Tagged Prompt with
-`@tags` connected only to such a node won't queue, rather than sending raw tags.
+`ref_images` as one batch). Wire files into those by hand (the `@name` outputs help), or try the `images`
+batch output where the model accepts a batch. A Tagged Prompt with `@tags` whose text reaches only such a
+node, with none of its outputs used, won't queue rather than send raw tags.
 
 ## Files that aren't in a library
 
@@ -234,7 +239,28 @@ Good to know:
   different file. Plug it back in (or click the red tag to use a library file of that name).
 - You can also wire a file **straight into the model's input**; it keeps that input, and its file name
   works as a tag.
-- **`@name` outputs** go the other way: one output per tagged library file, to wire it anywhere by hand.
+- It also gets its own output on the Tagged Prompt, like library files: see [Outputs](#outputs-every-tagged-file-and-a-batch).
+
+## Outputs: every tagged file, and a batch
+
+Next to `text`, the Tagged Prompt has an output for **every tagged file**, library files and plugged-in
+files alike, plus one **`images`** output with all tagged images as a batch. The number after each name is
+where that file goes: **`@Coin (1)`** is `image_1` (`(2)` is `image_2`, …). The numbers follow First/Last
+and match the numbers under the thumbnails and the "image 1, image 2…" in the prompt.
+
+**For models with a single `images` input** (Nano Banana Pro, Nano Banana, and other models that take a
+batch instead of growing inputs), connect two wires:
+
+- `text` → the model's `prompt`
+- `images` → the model's `images`
+
+The prompt is rewritten in the batch's order ("image 1" is the first image of the batch), so the numbers
+line up. The batch makes every image the size of image 1 by **fitting it inside and padding** (black
+bars), so nothing is cut off. If you'd rather resize or crop each image yourself, use the separate
+`@name` outputs instead, and batch them with your own nodes in the order of their numbers.
+
+The `@name` outputs also work anywhere else an image (video, audio) goes: previews, upscalers,
+IP-Adapter, … An output that is wired to something stays even if its tag is removed from the text.
 
 ## Libraries in detail
 

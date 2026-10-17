@@ -4,8 +4,8 @@ import { openAddDialog, toggleLibraryPanel } from "./dialogs.js";
 import { highlightTag, jumpToTag, renderInk, sweepInks } from "./tp_ink.js";
 import { syncInputs } from "./tp_inputs.js";
 import {
-  claimedKeys, enabledKinds, enabledLibs, extraMedia, KIND_LABEL, libToken, OUTPUT_TYPE, outputAsset,
-  outputAssetName, renameOutput, setOutputAsset, syncClaims, unpluggedText,
+  BATCH_OUTPUT, claimedKeys, enabledKinds, enabledLibs, extraMedia, extraOutputKey, isBatchOutput, KIND_LABEL,
+  libToken, OUTPUT_TYPE, outputAsset, outputAssetName, renameOutput, setOutputAsset, syncClaims, unpluggedText,
 } from "./tp_model.js";
 import { restoreTags, snapshotTags } from "./tp_pins.js";
 import { planFor } from "./tp_plan.js";
@@ -41,9 +41,9 @@ export function refreshStrip(node) {
   if (!s || !node.graph) return;
   syncClaims(node);
   refreshHeader(node);
-  syncOutputs(node);
   syncInputs(node);
-  const plan = planFor(node); // once per refresh, shared with the ink
+  const plan = planFor(node); // once per refresh, shared with the ink and the outputs
+  syncOutputs(node, plan);
   renderInk(node, plan);
   // The tag being typed while the @ list is open gets no chip yet (like the ink, which stays neutral).
   const typing = popup.open && popup.state?.node === node ? tagKey(popup.state.mention.query) : null;
@@ -162,19 +162,33 @@ function extraChip(node, x) {
  * New ones are appended so existing slots never move; outputs that are wired to something are
  * never removed (editing a tag shouldn't cut links), only unwired ones whose tag is gone.
  */
-function syncOutputs(node) {
+/**
+ * The node's outputs after "text":
+ *   - "images": every tagged image as one batch, in the order they're numbered (added once);
+ *   - one "@name" output per library file tagged in the text;
+ *   - one "@name" output per plugged-in file (its tag), so each can be resized or batched by hand.
+ * Outputs that are wired to something are never removed. Each "@name" output shows where its file
+ * lands, "@Coin (1)" = image_1, following First/Last and the target's own wiring.
+ */
+function syncOutputs(node, plan) {
   if (!library.loaded || !node.outputs) return;
   const libs = enabledLibs(node);
   const local = claimedKeys(node);
+  const props = (node.properties ??= {});
+  let changed = false;
+  if (!node.outputs.some(isBatchOutput)) {
+    node.addOutput(BATCH_OUTPUT, "IMAGE");
+    changed = true;
+  }
   const wanted = new Map(); // asset id -> asset
   for (const tok of mentionsIn(getWidget(node, "text")?.value)) {
     if (!splitTag(tok).lib && local.has(tagKey(tok))) continue; // a plugged-in file's tag, not the library's
     const res = library.resolve(tok, libs);
     if (res.status === "ok") wanted.set(res.asset.id, res.asset);
   }
-  // undefined: not an asset output ("text"); null: an asset output whose file is gone.
-  const assetOf = (out) => (outputAssetName(out) == null ? undefined : outputAsset(node, out)?.asset ?? null);
-  let changed = false;
+  // undefined: not a library output ("text", "images", a plugged-in file's); null: its file is gone.
+  const assetOf = (out) => (outputAssetName(out) == null || extraOutputKey(node, out) ? undefined
+    : outputAsset(node, out)?.asset ?? null);
   for (let i = node.outputs.length - 1; i >= 1; i--) {
     const out = node.outputs[i];
     const asset = assetOf(out);
@@ -205,6 +219,45 @@ function syncOutputs(node) {
     node.addOutput(`@${libToken(node, asset, libs, local)}`, OUTPUT_TYPE[assetKind(asset)]);
     setOutputAsset(node, node.outputs.at(-1), asset);
     changed = true;
+  }
+
+  // Plugged-in files: one output each, named by their tag.
+  const extras = new Map(plan.extras.filter((x) => x.tag).map((x) => [tagKey(x.tag), x]));
+  for (let i = node.outputs.length - 1; i >= 1; i--) {
+    const out = node.outputs[i];
+    const key = extraOutputKey(node, out);
+    if (!key || out.links?.length) continue;
+    const x = extras.get(key);
+    if (!x || out.type !== OUTPUT_TYPE[x.kind] || out.name !== `@${x.tag}`) {
+      const xout = { ...(props.tp_xout ?? {}) };
+      delete xout[out.name];
+      props.tp_xout = xout;
+      node.removeOutput(i);
+      changed = true;
+    }
+  }
+  const haveX = new Set(node.outputs.map((o) => extraOutputKey(node, o)).filter(Boolean));
+  for (const [key, x] of extras) {
+    const name = `@${x.tag}`;
+    if (haveX.has(key) || node.outputs.some((o) => o.name === name)) continue;
+    node.addOutput(name, OUTPUT_TYPE[x.kind]);
+    props.tp_xout = { ...(props.tp_xout ?? {}), [name]: key };
+    changed = true;
+  }
+
+  // Where each file lands: "@Coin (1)" = image_1.
+  const at = new Map();
+  for (const r of plan.rows) if (r.asset && r.n && !r.claim) at.set(`a:${r.asset.id}`, r.n);
+  for (const x of plan.extras) if (x.tag && x.n) at.set(`x:${tagKey(x.tag)}`, x.n);
+  for (const out of node.outputs.slice(1)) {
+    const xkey = extraOutputKey(node, out);
+    const asset = xkey ? null : assetOf(out);
+    const n = xkey ? at.get(`x:${xkey}`) : asset ? at.get(`a:${asset.id}`) : null;
+    const label = n ? `${out.name} (${n})` : undefined;
+    if (out.label !== label && !(label === undefined && out.label === out.name)) {
+      out.label = label;
+      changed = true;
+    }
   }
   if (changed) {
     node.graph?.change?.();

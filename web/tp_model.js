@@ -264,6 +264,7 @@ function qualifyLibraryTags(node, keys) {
   }
   let outs = 0;
   for (const o of node.outputs ?? []) {
+    if (extraOutputKey(node, o)) continue; // a plugged-in file's own output keeps its name
     const name = outputAssetName(o);
     const tok = name != null && qualified(name);
     if (!tok) continue;
@@ -317,12 +318,25 @@ export function outputAssetName(out) {
  */
 export function outputAsset(node, out) {
   const name = outputAssetName(out);
-  if (name == null) return null;
+  if (name == null || extraOutputKey(node, out)) return null;
   const libs = enabledLibs(node);
   const a = library.byId(node?.properties?.tp_out?.[out.name]);
   if (!a) return library.resolve(name, libs);
   return { asset: a, lib: library.lib(a.library), status: !libs.has(a.library) ? "off" : a.exists === false ? "missing" : "ok" };
 }
+
+/** The output that carries all tagged images as one batch (frontend-only, like the "@name" outputs). */
+export const BATCH_OUTPUT = "images";
+export const isBatchOutput = (out) => out?.name === BATCH_OUTPUT && out?.type === "IMAGE";
+
+/**
+ * The claim key of an "@name" output that carries a plugged-in file (properties.tp_xout), or null for
+ * library outputs. Plugged-in files get outputs too, so each tagged file can be resized or batched by hand.
+ */
+export const extraOutputKey = (node, out) => {
+  const key = node?.properties?.tp_xout?.[out?.name];
+  return typeof key === "string" ? key : null;
+};
 
 /** Records which asset an output carries (properties.tp_out, saved with the workflow). */
 export function setOutputAsset(node, out, asset) {
