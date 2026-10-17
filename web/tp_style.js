@@ -45,11 +45,12 @@ export const CSS = `
 .tp-chip .tp-ph.tp-cthumb{color:var(--muted-foreground,#8a8a8a)}
 .tp-chip .tp-ph.tp-cthumb svg{width:22px;height:22px}
 .tp-extra .tp-cthumb{border-style:dashed;border-color:var(--muted-foreground,#8a8a8a)}
-.tp-firstlast{margin-top:-14px;z-index:1;border:1px solid var(--secondary-background,#262729);border-radius:4px;
-  background:var(--base-background,#171718);color:var(--base-foreground,#fff);font:10px/14px Inter,system-ui,sans-serif;
-  padding:0 4px;cursor:pointer;white-space:nowrap}
-.tp-firstlast:hover{border-color:var(--base-foreground,#fff)}
-.tp-chip .tp-cname{max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp-firstlast{width:60px;margin-top:2px;border:1px solid var(--border-color,#666);border-radius:5px;
+  background:var(--secondary-background,#262729);color:var(--base-foreground,#fff);font:600 11px/20px Inter,system-ui,sans-serif;
+  padding:0;cursor:pointer;white-space:nowrap}
+.tp-firstlast:hover{border-color:var(--base-foreground,#fff);background:var(--secondary-background-hover,#333)}
+/* With a First/Last button in the strip, the other chips keep their "image n" on the same line. */
+.tp-strip:has(.tp-firstlast) .tp-chip:not(.tp-extra) .tp-idx{margin-top:26px}
 .tp-chip .tp-idx{font-size:10px;color:var(--descrip-text,#999)}
 .tp-chip.tp-bad .tp-idx{color:#e57373}
 .tp-add{width:56px;height:56px;border:1px dashed var(--border-color,#666);border-radius:6px;background:transparent;
@@ -75,7 +76,6 @@ export const CSS = `
   background:var(--secondary-background,#262729);color:var(--muted-foreground,#8a8a8a)}
 .tp-chip.tp-missing .tp-idx{color:var(--tp-tag-missing)}
 .tp-chip.tp-off{opacity:.55}
-.tp-chip.tp-off .tp-cname{text-decoration:line-through}
 .tp-hover.tp-hmissing .tp-hname{color:var(--tp-tag-missing)}
 .tp-hover.tp-hoff .tp-hname{color:var(--tp-tag-off);text-decoration:line-through}
 .tp-hover.tp-pinned{pointer-events:auto}

@@ -64,11 +64,13 @@ export function refreshStrip(node) {
     if (r.shared) continue; // another tag for the same file already has a chip
     const chip = h("div", `tp-chip${r.state === "ok" ? "" : r.state === "bad" ? " tp-bad" : ` tp-${r.state}`}`);
     const libName = r.asset ? library.libName(r.asset.library) : "";
-    chip.title = r.state === "off" ? `In ${libName}, which is switched off in this node.`
+    // The tag itself isn't printed under the thumbnail (clicking finds it in the text); it leads the tooltip.
+    chip.dataset.tag = `@${r.tok}`;
+    chip.title = `@${r.tok}\n` + (r.state === "off" ? `In ${libName}, which is switched off in this node.`
       : r.state === "missing" ? `File not found: ${r.asset.path}`
       : r.unsupported ? `${r.asset.path}\n⚠ ${r.unsupported}`
       : r.asset ? `${libName} · ${r.asset.path}` : r.wiredByHand ? "Wired by hand"
-      : r.status === "unplugged" ? unpluggedText(r.claim) : `@${r.tok} is not in the library`;
+      : r.status === "unplugged" ? unpluggedText(r.claim) : `@${r.tok} is not in the library`);
     if (r.asset && r.state !== "missing") {
       chip.append(mediaThumb(r.asset, 56, "tp-cthumb"));
     } else if (r.state === "missing") {
@@ -81,10 +83,7 @@ export function refreshStrip(node) {
     }
     const idx = r.label ?? (r.state === "off" ? `${libName} is off` : r.state === "missing" ? "file missing"
       : r.unsupported ? `no ${r.kind} input` : r.status === "unplugged" ? (r.claim?.muted ? "muted" : "unplugged") : "unknown");
-    chip.append(
-      h("div", "tp-cname", { textContent: `@${r.tok}` }),
-      h("div", "tp-idx", { textContent: idx }),
-    );
+    chip.append(h("div", "tp-idx", { textContent: idx }));
     const key = tagKey(r.tok);
     const count = mentionsIn(getWidget(node, "text")?.value).filter((t) => tagKey(t) === key).length;
     chip.title += count > 1 ? `\nClick to cycle through its ${count} uses` : "\nClick to find it in the text";
@@ -138,12 +137,9 @@ function extraChip(node, x) {
     node.graph?.change?.();
     refreshStrip(node);
   };
-  chip.append(
-    tog,
-    h("div", "tp-cname", { textContent: x.tag ? `@${x.tag}` : x.input }),
-    h("div", "tp-idx", { textContent: x.label ?? (x.unsupported ? `no ${x.kind} input` : "") }),
-  );
-  chip.title = `${x.input} ← ${x.src?.title ?? "?"}${media.file ? ` (${media.file})` : ""}\nNot in the library: used for this run only.`
+  chip.dataset.tag = x.tag ? `@${x.tag}` : x.input;
+  chip.append(tog, h("div", "tp-idx", { textContent: x.label ?? (x.unsupported ? `no ${x.kind} input` : "") }));
+  chip.title = `${chip.dataset.tag}\n${x.input} ← ${x.src?.title ?? "?"}${media.file ? ` (${media.file})` : ""}\nNot in the library: used for this run only.`
     + (x.unsupported ? `\n⚠ ${x.unsupported}` : "");
   if (x.tag) {
     const key = tagKey(x.tag);

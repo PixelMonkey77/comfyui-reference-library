@@ -16,7 +16,7 @@ const add = (type, x, y, g = G) => { const n = LG.createNode(type); g.add(n); n.
 const idx = (n, name) => n.inputs.findIndex((i) => i.name === name);
 const loadImg = (file, x, y, g) => { const n = add("LoadImage", x, y, g); n.widgets.find((w) => w.name === "image").value = file; return n; };
 const chips = (tp) => [...(document.querySelectorAll(`.lg-node[data-node-id="${tp.id}"] .tp-chip`))]
-  .map((c) => `${c.querySelector(".tp-cname")?.textContent}[${c.querySelector(".tp-idx")?.textContent}]`).join(" ");
+  .map((c) => `${c.dataset.tag}[${c.querySelector(".tp-idx")?.textContent}]`).join(" ");
 const ink = (tp) => [...(document.querySelectorAll(`.lg-node[data-node-id="${tp.id}"] .tp-ink`))].map((s) => `${s.textContent}=${s.dataset.state}`).join(" ");
 const describe = (o, id) => { const n = o[id]; if (!n) return `?${id}`; return `${n.class_type}:${String(n.inputs.image ?? n.inputs.image_path ?? n.inputs.path ?? "").split(/[\\/]/).pop()}`; };
 async function api() {

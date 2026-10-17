@@ -205,8 +205,9 @@ window.__shot = {
     return l;
   },
   clear() { document.getElementById("shot-notes")?.remove(); },
-  /** A callout: label at (dx, dy) from the target's edge on "side", with a curved arrow to the target. */
-  note({ target, text, side = "right", dx = 70, dy = 0, color = "#f5a524", size = 24, from = null, bend = 28 }) {
+  /** A callout: label at (dx, dy) from the target's edge on "side", with a curved arrow to the target
+   *  (to its "tip" edge: by default the one facing the label). */
+  note({ target, text, side = "right", dx = 70, dy = 0, color = "#f5a524", size = 24, from = null, bend = 28, tip = null }) {
     const r = this.rect(target);
     const f = this.rect(from) ?? r; // the label is placed beyond this element's edge (default: the target)
     if (!r) throw new Error("note target not found: " + JSON.stringify(target));
@@ -223,6 +224,8 @@ window.__shot = {
     else if (side === "left") { lx = f.x - dx - w; ly = cy - h / 2 + dy; ax = lx + w + 8; ay = ly + h / 2; tx = r.x - 6; ty = cy; }
     else if (side === "bottom") { lx = cx - w / 2 + dx; ly = f.y + f.height + Math.abs(dy || 60); ax = lx + w / 2; ay = ly - 6; tx = cx; ty = r.y + r.height + 6; }
     else { lx = cx - w / 2 + dx; ly = f.y - Math.abs(dy || 60) - h; ax = lx + w / 2; ay = ly + h + 6; tx = cx; ty = r.y - 6; }
+    if (tip === "right") { tx = r.x + r.width + 6; ty = cy; }
+    else if (tip === "left") { tx = r.x - 6; ty = cy; }
     lab.style.left = lx + "px";
     lab.style.top = ly + "px";
     const mx = (ax + tx) / 2, my = (ay + ty) / 2;
@@ -420,7 +423,7 @@ async function walkthrough() {
   ]);
 
   // 10. Click a thumbnail: its tag lights up
-  const gem = await ev(() => [...document.querySelectorAll(window.__shot.nodeSel + " .tp-chip")].findIndex((c) => c.textContent.includes("@Gem")));
+  const gem = await ev(() => [...document.querySelectorAll(window.__shot.nodeSel + " .tp-chip")].findIndex((c) => c.dataset.tag === "@Gem"));
   await click({ sel: "{node} .tp-chip", index: Math.max(0, gem) });
   await sleep(120);
   await shot("10_click_a_thumbnail_to_find_its_tag", [NODE], [
@@ -513,7 +516,7 @@ async function walkthrough() {
   await shot("11_plug_in_a_file", [NODE, LI], [
     { target: LI, text: "Any Load Image / Video / Audio…", side: "top", dx: 0, dy: 40 },
     { target: { sel: "{node} .tp-ink", index: 1 }, text: "…tagged by its file name", side: "top", from: NODE, dx: 260, dy: 24 },
-    { target: { sel: "{node} .tp-chip.tp-extra" }, text: "⇤ First: before the library files", side: "bottom", from: NODE, dx: 220, dy: 30 },
+    { target: { sel: "{node} .tp-firstlast" }, text: "⇤ First: before the library files", side: "bottom", tip: "left", from: NODE, dx: -380, dy: 30, bend: -28 },
   ]);
 
   // 12. Switch it to Last: it moves after the library files
@@ -521,7 +524,7 @@ async function walkthrough() {
   await mouse("mouseMoved", 5, 5);
   await sleep(900);
   await shot("12_place_it_last", [NODE], [
-    { target: { sel: "{node} .tp-chip.tp-extra" }, text: "Click it: Last ⇥ puts it after the library files", side: "bottom", from: NODE, dx: 160, dy: 30 },
+    { target: { sel: "{node} .tp-firstlast" }, text: "Click it: Last ⇥ puts it after the library files", side: "bottom", tip: "right", from: NODE, dx: 160, dy: 30 },
   ]);
 }
 

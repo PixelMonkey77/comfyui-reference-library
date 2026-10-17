@@ -102,7 +102,8 @@ Hover a tag in the text for a large preview, where it goes, and where the file i
 
 ### 9. Find a tag from its thumbnail
 
-Hover a thumbnail to highlight its tags; click it to jump to the tag (click again for the next one).
+Hover a thumbnail to highlight its tags (the tooltip names it); click it to jump to the tag (click again
+for the next one).
 
 <img src="docs/images/10_click_a_thumbnail_to_find_its_tag.png" width="560" alt="Click a thumbnail to find its tag">
 
@@ -251,7 +252,7 @@ free input appears each time one is used.
 
 <img src="docs/images/11_plug_in_a_file.png" width="760" alt="A Load Image plugged into the Tagged Prompt and tagged by its file name">
 
-**3. Choose its place: before or after the library files.** The button on its thumbnail switches between
+**3. Choose its place: before or after the library files.** The button under its thumbnail switches between
 **⇤ First** (the default: it takes the first inputs, before the library files) and **Last ⇥** (after
 them). The numbers under the thumbnails show the result straight away.
 
