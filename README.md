@@ -233,6 +233,11 @@ crop or pad each image your way, then batch them with your own nodes, in the ord
 **Forgot the `images` wire?** The queue is refused with a message saying the model gets the text but none
 of the tagged files, rather than running without your references.
 
+**Why isn't this automatic?** This is legacy support: newer models have separate `image_1`, `image_2`…
+inputs, which the Tagged Prompt fills on its own, no wires needed. For batch-input models the `images`
+wire stays manual on purpose, so you always see where the padding happens and can swap in your own
+resizing.
+
 ## Files that aren't in a library
 
 Images, videos and audio from any other node (**Load Image**, **Load Video**, **Load Audio**, a
