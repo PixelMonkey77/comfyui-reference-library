@@ -9,7 +9,7 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.urls]
-# Repository = "https://github.com/<you>/comfyui-library-image"   (set after creating the GitHub repo)
+Repository = "https://github.com/PixelMonkey77/comfyui-library-image"
 
 [tool.comfy]
 PublisherId = ""   # your publisher id on registry.comfy.org, only needed to publish there
