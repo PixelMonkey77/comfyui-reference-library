@@ -6,7 +6,7 @@
 //
 //   node tools/screenshots/make_screenshots.mjs [--out DIR] [--resources DIR] [--keep] [--show]
 //
-// Defaults: --out "<repo>/../GIT images", --resources "<repo>/../Resources". Paths to ComfyUI,
+// Defaults: --out "<repo>/docs/images" (shown in the README), --resources "<repo>/../Resources". Paths to ComfyUI,
 // its Python and Chrome are detected for ComfyUI Desktop on Windows; override with the env vars
 // COMFYUI_DIR, COMFYUI_PYTHON, COMFYUI_FRONTEND, CHROME. --keep leaves the temp folder (logs),
 // --show runs Chrome with a window.
@@ -25,7 +25,7 @@ const opt = (name, def) => {
 };
 const flag = (name) => args.includes(`--${name}`);
 
-const OUT = path.resolve(opt("out", path.join(REPO, "..", "GIT images")));
+const OUT = path.resolve(opt("out", path.join(REPO, "docs", "images")));
 const RES = path.resolve(opt("resources", path.join(REPO, "..", "Resources")));
 const PORT = Number(opt("port", 8190));
 const CDP_PORT = PORT + 1000;

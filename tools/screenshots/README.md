@@ -7,12 +7,12 @@ redone after every UI change with one command:
 node tools/screenshots/make_screenshots.mjs
 ```
 
-It writes `01_…png` to `10_…png` into `../GIT images` (next to the repo) using the demo files in
+It writes `01_…png` to `10_…png` into `docs/images/` (the images the main README shows) using the demo files in
 `../Resources/{Characters,Environments,Icons}`. Options:
 
 | Option | Default | |
 |---|---|---|
-| `--out DIR` | `<repo>/../GIT images` | where the PNGs go (existing files with the same names are replaced) |
+| `--out DIR` | `<repo>/docs/images` | where the PNGs go (existing files with the same names are replaced) |
 | `--resources DIR` | `<repo>/../Resources` | demo files: `Characters/` (first library, several at once), `Environments/` (`Ancient_Temple` is added on its own), `Icons/` |
 | `--port N` | `8190` | port of the temporary ComfyUI (Chrome's debug port is N+1000) |
 | `--keep` | | keep the temp folder (ComfyUI log, settings) for debugging |
