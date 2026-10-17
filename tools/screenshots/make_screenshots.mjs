@@ -58,6 +58,9 @@ function prepareBase() {
   fs.copyFileSync(path.join(REPO, "__init__.py"), path.join(pack, "__init__.py"));
   fs.cpSync(path.join(REPO, "web"), path.join(pack, "web"), { recursive: true });
   for (const d of ["input", "output", "temp", path.join("user", "default")]) fs.mkdirSync(path.join(base, d), { recursive: true });
+  // A file outside the library for the Load Image step (a copy, under a name the library doesn't use).
+  const outside = pickFile(ENVIRONMENTS, "Cursed_Forest");
+  if (outside) fs.copyFileSync(outside, path.join(base, "input", "Night_Forest.png"));
   // A clean, quiet UI: Nodes 2.0, dark theme, no first-run popups, no spellcheck squiggles.
   fs.writeFileSync(path.join(base, "user", "default", "comfy.settings.json"), JSON.stringify({
     "Comfy.VueNodes.Enabled": true, "Comfy.VueNodes.AutoScaleLayout": false, "Comfy.ColorPalette": "dark",
@@ -173,9 +176,10 @@ async function key(k, modifiers = 0) {
 const PAGE_HELPERS = String.raw`
 window.__shot = {
   nodeSel: ".lg-node",
+  sels: {}, // more named nodes: "{li}" etc.
   el(t) {
     if (!t) return null;
-    const sel = t.sel.replaceAll("{node}", this.nodeSel);
+    const sel = t.sel.replaceAll("{node}", this.nodeSel).replace(/\{(\w+)\}/g, (all, k) => this.sels[k] ?? all);
     const list = [...document.querySelectorAll(sel)].filter((e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== "hidden");
     return (t.text ? list.find((e) => e.textContent.trim().startsWith(t.text)) : list[t.index ?? 0]) ?? null;
   },
@@ -416,6 +420,38 @@ async function walkthrough() {
   await sleep(120);
   await shot("10_click_a_thumbnail_to_find_its_tag", [NODE], [
     { target: { sel: "{node} .tp-chip", index: Math.max(0, gem) }, text: "Click a thumbnail: its tag lights up", side: "bottom", dx: 40, dy: 50 },
+  ]);
+
+  // 11. A file that isn't in a library: a Load Image plugged into the Tagged Prompt
+  await mouse("mouseMoved", 5, 5);
+  await ev(async () => {
+    const app = window.app;
+    const node = window.__shot.node;
+    app.canvas.ds.offset = [560, 190];
+    const li = window.LiteGraph.createNode("LoadImage");
+    app.graph.add(li);
+    li.pos = [-470, 120];
+    li.widgets.find((w) => w.name === "image").value = "Night_Forest.png";
+    li.connect(0, node, node.inputs.findIndex((i) => i.name === "image_1"));
+    app.canvas.setDirty(true, true);
+    window.__shot.sels.li = `.lg-node[data-node-id="${li.id}"]`;
+    await new Promise((r) => setTimeout(r, 1500));
+    window.__shot.setText("@Alex explores the @Night_Forest at dusk");
+  });
+  await sleep(2200);
+  const LI = { sel: "{li}" };
+  await shot("11_plug_in_a_file", [NODE, LI], [
+    { target: LI, text: "Any Load Image / Video / Audio…", side: "top", dx: 0, dy: 40 },
+    { target: { sel: "{node} .tp-ink", index: 1 }, text: "…tagged by its file name", side: "top", from: NODE, dx: 260, dy: 24 },
+    { target: { sel: "{node} .tp-chip.tp-extra" }, text: "⇤ First: before the library files", side: "bottom", from: NODE, dx: 220, dy: 30 },
+  ]);
+
+  // 12. Switch it to Last: it moves after the library files
+  await click({ sel: "{node} .tp-firstlast" });
+  await mouse("mouseMoved", 5, 5);
+  await sleep(900);
+  await shot("12_place_it_last", [NODE], [
+    { target: { sel: "{node} .tp-chip.tp-extra" }, text: "Click it: Last ⇥ puts it after the library files", side: "bottom", from: NODE, dx: 160, dy: 30 },
   ]);
 }
 

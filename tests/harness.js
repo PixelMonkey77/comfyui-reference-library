@@ -4,6 +4,10 @@ const m = await import("/extensions/comfyui-library-image/common.js");
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 for (let i = 0; i < 40 && !window.LiteGraph?.registered_node_types?.TaggedPrompt; i++) await wait(500);
 await m.library.load(true);
+// Its own library, so the results don't depend on yours: two files from ComfyUI's input folder (the
+// same folder the Load Image scenarios use). Set window.__harnessInput first if yours is elsewhere.
+const INPUT_DIR = window.__harnessInput ?? "C:/Users/chabu/Documents/ComfyUI/input/";
+const harnessLib = (await m.library.add({ new_library: "Zz_Harness" }, ["Buttons.png", "Biscuit.png"].map((f) => ({ path: INPUT_DIR + f })))).library;
 await wait(2500); // let a freshly loaded page restore its workflow first
 const LG = window.LiteGraph;
 const G = app.graph;
@@ -197,12 +201,13 @@ await scenario("claims-test02", async () => {
   tp.connect(0, t, idx(t, "prompt"));
   const a = loadImg("Biscuit.png", -400, 2000), b = loadImg("Biscuit.png", -400, 2350);
   a.connect(0, tp, idx(tp, "image_1")); await settle();
-  m.setWidget(tp, "text", "@Biscuit and @Library_01/Biscuit"); await settle();
+  m.setWidget(tp, "text", "@Biscuit and @Zz_Harness/Biscuit"); await settle();
   b.connect(0, tp, idx(tp, "image_2")); await settle();
   m.setWidget(tp, "text", m.getWidget(tp, "text").value + " and @Biscuit_2"); await settle();
   tp.disconnectInput(idx(tp, "image_1"));
   return { tps: [tp] };
 });
 
+await m.library.deleteLibrary(harnessLib);
 window.__harness = results;
 JSON.stringify(results, null, 1)

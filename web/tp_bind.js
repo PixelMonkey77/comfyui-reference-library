@@ -48,6 +48,7 @@ export function bindPrompt(output) {
     return id;
   };
   const cloned = new Set();
+  const bound = new Set(); // Tagged Prompts whose text reached a model node they could fill
 
   // One hidden loader per library file, shared by every target and output that uses it.
   const loaders = new Map();
@@ -113,6 +114,7 @@ export function bindPrompt(output) {
       continue;
     }
     const tpId = pick.tps[0] ?? null;
+    if (tpId) bound.add(tpId);
     const src = tpId ? output[tpId] : null;
     const tpUi = tpId ? nodeForExecId(tpId) : null;
 
@@ -201,6 +203,7 @@ export function bindPrompt(output) {
         }
         rewriteNode(clone);
         output[cid] = clone;
+        if (clone.class_type === NODE_TYPE) bound.add(cid);
         cloned.add(c);
       }
       inputs[pick.key] = [copy.get(pick.chain[0]), pick.v[1]];
@@ -221,6 +224,17 @@ export function bindPrompt(output) {
         again = true;
       }
     }
+  }
+  // A Tagged Prompt with @tags whose text reaches no node it can fill would send the raw "@Alex" to
+  // a model that gets no images (LTX 2.5, an open-model text encoder without image inputs, ...).
+  for (const [id, node] of Object.entries(output)) {
+    if (node.class_type !== NODE_TYPE || bound.has(id)) continue;
+    const tags = Object.values(node.inputs ?? {}).filter((v) => typeof v === "string").flatMap(mentionsIn);
+    if (!tags.length) continue;
+    const title = nodeForExecId(id)?.title ?? "Tagged Prompt";
+    errors.push(`${title}: its @tags (@${tags[0]}…) can't be sent: its text doesn't reach a model node with image, `
+      + "video or audio inputs it can fill. Connect it to one (see Supported model nodes in the README), "
+      + "or wire the files by hand and describe them without @tags.");
   }
   return errors;
 }

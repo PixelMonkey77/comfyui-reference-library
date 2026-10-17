@@ -1,9 +1,9 @@
 # Library Image + Tagged Prompt for ComfyUI
 
 Tag your reference images, videos and audio in a prompt with **`@name`**, and the **Tagged Prompt**
-node wires them into API nodes with auto-growing media ports (**Nano Banana**, **Seedream**,
-**GPT Image**, **FLUX 3**, **Seedance**, … see [Supported model nodes](#supported-model-nodes))
-when you queue. Files stay where they are on disk: no Load nodes, no copying into ComfyUI's `input`
+node wires them into model nodes with growing media inputs (**Nano Banana**, **Seedream**,
+**GPT Image**, **FLUX 3**, **Seedance**, **MiniMax H3**, **Qwen Image**, … see
+[Supported model nodes](#supported-model-nodes)) when you queue. Files stay where they are on disk: no Load nodes, no copying into ComfyUI's `input`
 folder.
 
 <p align="center">
@@ -14,7 +14,8 @@ folder.
 - **`@` autocomplete** with thumbnails; tags colored by state; hover a tag for a preview.
 - **Queue-time wiring:** `@Alex` becomes `image 1` in the prompt sent to the model, and the file goes
   to the matching input port.
-- **Images, videos and audio**, plus files plugged in from other nodes (Load Image, …).
+- **Images, videos and audio**, plus [files from other nodes](#files-that-arent-in-a-library)
+  (Load Image, …), placed before or after the library files.
 
 ## Contents
 
@@ -95,7 +96,13 @@ Hover a thumbnail to highlight its tags; click it to jump to the tag (click agai
 ### 10. Connect it to a model
 
 Connect the node's **text** output to the model's `prompt` (directly, or through string nodes such
-as String Concatenate) and queue. Works inside subgraphs too.
+as String Concatenate) and queue. Works inside subgraphs too. Which models work:
+[Supported model nodes](#supported-model-nodes).
+
+### 11. Files that aren't in a library
+
+Plug a Load Image (Video, Audio) into the node to tag its file for this run, before or after the
+library files: see [Files that aren't in a library](#files-that-arent-in-a-library).
 
 ## Tag colors
 
@@ -110,48 +117,112 @@ Red, purple and grey tags block the queue with a notice. **Export (API)** still 
 
 ## What happens when you queue
 
-For each node with auto-grow media ports whose prompt contains `@tags`:
+For each model node with growing media inputs whose prompt contains `@tags`:
 
-1. Files you wired into the model by hand keep their ports.
-2. Plugged-in files set to **First**, then library tags (in the order they first appear), then
-   plugged-in files set to **Last** take the next free ports, up to the model's limit.
-3. In the prompt sent to the server, `@tags` become `image N`, `Image N`, `Video N` or `Audio N`,
-   numbered by port order. The canvas keeps the `@tags`.
+1. Files you wired into the model by hand keep their inputs.
+2. Then, on the next free inputs, up to the model's limit:
+   plugged-in files set to **First** → library tags, in the order they first appear in the text →
+   plugged-in files set to **Last** (see [Files that aren't in a library](#files-that-arent-in-a-library)).
+3. In the prompt sent to the server, `@tags` become `image N` (or `Image N`, `Video N`, `Audio N`),
+   numbered by input order. The canvas keeps the `@tags`.
 
-A stray `@word` typed straight into a model's own prompt is left as text, and e-mail addresses like
-`me@x.com` are ignored.
+Queueing is refused, with a message saying why, when a tag can't be used (see [Tag colors](#tag-colors)),
+when a prompt tags more files than the model takes, or when a Tagged Prompt with tags isn't connected to
+any model it can fill (so raw `@tags` are never sent). A stray `@word` typed straight into a model's own
+prompt is left as text, and e-mail addresses like `me@x.com` are ignored.
 
 ## Supported model nodes
 
-Any partner/API node whose media inputs grow as you connect them (`images.image_1`, `image_2`, …)
-works. The limits come from the node itself and follow the model selected on it: when a prompt tags
-more files than the model takes, the node shows it and queueing is refused with a clear message,
-before anything is sent.
+Any node with **numbered media inputs that grow as you connect them** (`images.image_1`, `image_2`, …)
+and a **prompt** works, partner/API and open models alike. The limits come from the node and follow
+the model selected on it.
 
-| Node | Model | Images | Videos | Audio |
-|---|---|---|---|---|
-| Nano Banana 2.1 | all models | 14 | | |
-| ByteDance Seedream 4.5 & 5.0 | 5.0 lite | 14 | | |
-| | 5.0 pro, 5.0 flash, 4.5, 4.0 | 10 | | |
-| OpenAI GPT Image 2.5 | all models | 16 | | |
-| FLUX 3 Image | | 10 | | |
-| Tencent HY Image: Edit | HY Image 3.5 | 5 (at least 1) | | |
-| Qwen Image 3 Edit | 3.0 pro, 3.0 | 3 (at least 1) | | |
-| ByteDance Seedance 2.5 Reference to Video | 2.5, 2.5 Draft | 30 | 10 | 10 |
-| | 2.0, 2.0 Fast, 2.0 Mini | 9 | 3 | 3 |
+Checked by building the prompt each node receives (which file goes on which input, and how the tags
+are rewritten), not by paid runs:
 
-Tested by building the prompt each node receives (which file goes on which input, and how the tags
-are rewritten), not by paid runs. Seedance says `Image 1` / `Video 1` / `Audio 1`, the others `image 1`.
+**Image**
+
+| Node | Images |
+|---|---|
+| Nano Banana 2.1 | 14 |
+| ByteDance Seedream 4.5 & 5.0 | 14 with 5.0 lite; 10 with 5.0 pro, 5.0 flash, 4.5, 4.0 |
+| OpenAI GPT Image 2.5 | 16 |
+| FLUX 3 Image | 10 |
+| Flux.2 Image ([pro], [max]) | 8 |
+| Tencent HY Image: Edit | 5 (at least 1) |
+| Qwen Image 3 Edit | 3 (at least 1) |
+| Grok Image Edit | 3 (1 with grok-imagine-image-pro) |
+| Ideogram 4.5 Edit / Precise Edit | 5 |
+| Luma UNI-1 Image / Image Edit | 9 / 8 |
+| Meta Muse Image Edit | 10 |
+| OpenRouter Image | 5 |
+
+**Video**
+
+| Node | Images | Videos | Audio |
+|---|---|---|---|
+| ByteDance Seedance 2.5 Reference to Video | 30 (9 with 2.0, 2.0 Fast, 2.0 Mini) | 10 (3) | 10 (3) |
+| MiniMax H3 Reference to Video (H3, H3 Max) | 9 | 3 | 3 |
+| Vidu Q4 Reference-to-Video | 15 | | 3 |
+| HeyGen Video 1.0 Reference to Video | 9 | 3 | 3 |
+| Google Gemini Omni (Video) | 14 | 3 | |
+
+**Text (describe or compare images in a chat model)**
+
+| Node | Images | Videos | Audio |
+|---|---|---|---|
+| Anthropic Claude | 20 | | |
+| Google Gemini | 16 | 1 | 1 |
+
+**Open models (local text encoders for image editing)**
+
+| Node | Images |
+|---|---|
+| Text Encode Qwen Image 2.1 | 16 |
+| Text Encode Ming Image Edit | 8 |
+| TextEncodeBooguEdit, TextEncodeMageFlowEdit | 16 |
+
+Reference-to-video nodes (Seedance, MiniMax H3, Vidu, HeyGen) are told `Image 1`, `Video 1`,
+`Audio 1`; the others `image 1`.
+
+**Not supported:** nodes with a single image input, or one batch input, such as **LTX 2.5** (API: Image /
+Audio to Video), the **LTX-2** open-model nodes, and the **MiniMax H3** open model (Reference to Video takes
+`ref_images` as one batch). Wire files into those by hand and describe them in words; a Tagged Prompt with
+`@tags` connected only to such a node won't queue, rather than sending raw tags.
 
 ## Files that aren't in a library
 
-- **`image_N` / `video_N` / `audio_N` inputs** take files from other nodes (Load Image, …) for this
-  run. Tag them by file name; a new input appears whenever one is used. On its thumbnail, set each
-  to come **First** or **Last** on the model.
+Images, videos and audio from any other node (**Load Image**, **Load Video**, **Load Audio**, a
+generated image, …) can be tagged too, for the current run, without adding them to a library.
+
+**1. Plug it in.** Connect the file to the Tagged Prompt's `image_1` (or `video_1`, `audio_1`). A new
+free input appears each time one is used.
+
+**2. Tag it.** It is named after its file (`Night_Forest.png` → `@Night_Forest`; a Library Image node's
+`name` works too). It is listed first in the `@` list, marked *this run*, and gets a thumbnail in the strip.
+
+<img src="docs/images/11_plug_in_a_file.png" width="760" alt="A Load Image plugged into the Tagged Prompt and tagged by its file name">
+
+**3. Choose its place: before or after the library files.** The button on its thumbnail switches between
+**⇤ First** (the default: it takes the first inputs, before the library files) and **Last ⇥** (after
+them). The numbers under the thumbnails show the result straight away.
+
+<img src="docs/images/12_place_it_last.png" width="460" alt="Switched to Last: the plugged-in file moves after the library files">
+
+Several plugged-in files keep their input order within each group (`image_1` before `image_2`).
+The full order on the model is: files wired into the model by hand → **First** files → library tags →
+**Last** files.
+
+Good to know:
+
 - A plugged-in file **never takes over a library asset** with the same name: existing tags become
   `@Library_01/Name`, the plain name means the plugged-in file, and a second one with that name gets
-  `@Name_2`. Unplugged, its tags turn red.
-- **`@name` outputs:** one output per tagged library file, to wire it anywhere by hand.
+  `@Name_2`.
+- Unplugged or muted, its tags turn red and the queue is refused, so the run never silently uses a
+  different file. Plug it back in (or click the red tag to use a library file of that name).
+- You can also wire a file **straight into the model's input**; it keeps that input, and its file name
+  works as a tag.
+- **`@name` outputs** go the other way: one output per tagged library file, to wire it anywhere by hand.
 
 ## Libraries in detail
 

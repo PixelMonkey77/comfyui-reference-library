@@ -6,10 +6,12 @@ export const KINDS = ["image", "video", "audio"];
 
 // Auto-grow media ports, e.g. "model.images.image_3" (Nano Banana),
 // "model.reference_images.image_3" / "model.reference_videos.video_2" / "model.reference_audios.audio_1" (Seedance).
+// Luma names them "model.image_ref.image_3". Any group whose name mentions the kind counts; a bare
+// "image_1" (the Tagged Prompt's own inputs) never does.
 const PORT_RE = {
-  image: /(?:^|[._])images\.image_(\d+)$/,
-  video: /(?:^|[._])videos\.video_(\d+)$/,
-  audio: /(?:^|[._])audios\.audio_(\d+)$/,
+  image: /(?:^|\.)[a-z_]*image[a-z_]*\.image_(\d+)$/i,
+  video: /(?:^|\.)[a-z_]*video[a-z_]*\.video_(\d+)$/i,
+  audio: /(?:^|\.)[a-z_]*audio[a-z_]*\.audio_(\d+)$/i,
 };
 
 export const portNum = (name, kind = "image") => {
