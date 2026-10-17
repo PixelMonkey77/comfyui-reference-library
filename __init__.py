@@ -150,7 +150,25 @@ else:
 """
 
 
+def _fake_dialog(queue_file):
+    """Automation only (tools/screenshots): when LIBRARY_IMAGE_FAKE_DIALOG names a JSON file holding a
+    list of answers (each a list of paths), each dialog takes the next answer instead of opening a
+    window. Only whoever starts the server can set it."""
+    with _DIALOG_LOCK:
+        try:
+            with open(queue_file, encoding="utf-8") as f:
+                answers = json.load(f)
+        except (OSError, ValueError):
+            return []
+        answer = answers.pop(0) if answers else []
+        with open(queue_file, "w", encoding="utf-8") as f:
+            json.dump(answers, f)
+    return [str(p) for p in answer if isinstance(p, str)]
+
+
 def _open_file_dialog(initial_dir, multi=False, kinds=("image",)):
+    if os.environ.get("LIBRARY_IMAGE_FAKE_DIALOG"):
+        return _fake_dialog(os.environ["LIBRARY_IMAGE_FAKE_DIALOG"])
     filters = _dialog_filters(list(kinds))
     if sys.platform == "win32":
         flt = "|".join(f"{label}|{';'.join(p)}" for label, p in filters)

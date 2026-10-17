@@ -104,7 +104,10 @@ export const popup = {
     if (this.el) this.el.hidden = true;
     const node = this.state?.node;
     this.state = null;
-    if (node) renderInk(node);
+    if (node) {
+      renderInk(node);
+      scheduleStrip(node); // a tag left half-typed now gets its chip
+    }
   },
 
   async refresh(editor, node) {

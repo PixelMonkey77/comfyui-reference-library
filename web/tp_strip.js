@@ -45,11 +45,14 @@ export function refreshStrip(node) {
   syncInputs(node);
   const plan = planFor(node); // once per refresh, shared with the ink
   renderInk(node, plan);
-  const { rows, extras } = plan;
+  // The tag being typed while the @ list is open gets no chip yet (like the ink, which stays neutral).
+  const typing = popup.open && popup.state?.node === node ? tagKey(popup.state.mention.query) : null;
+  const rows = plan.rows.filter((r) => !(typing && r.status === "unknown" && tagKey(r.tok) === typing));
+  const { extras } = plan;
   const uses = mentionsIn(getWidget(node, "text")?.value).map(tagKey);
   const sig = JSON.stringify([rows.map((r) => [r.tok, r.label, r.state, r.status, r.unsupported, r.asset?.id, r.asset?.mtime, r.asset?.name]),
     extras.map((x) => [x.input, x.tag, x.before, x.label, x.unsupported, x.src?.id, extraMedia(x).file]),
-    library.assets.length, library.libraries.map((l) => l.name), uses]);
+    library.assets.length, library.libraries.map((l) => l.name), uses, typing]);
   if (sig === s.sig) return;
   s.sig = sig;
 
