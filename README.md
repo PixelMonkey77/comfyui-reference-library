@@ -274,21 +274,10 @@ cd ComfyUI/custom_nodes
 git clone https://github.com/PixelMonkey77/comfyui-library-image
 ```
 
-**For development**, link the folder instead (Command Prompt), so edits apply after a restart:
+Other tagging nodes that react to `@` in prompts can conflict with this one.
 
-```
-mklink /J "C:\path\to\ComfyUI\custom_nodes\comfyui-library-image" "D:\path\to\comfyui-library-image"
-```
-
-Then restart ComfyUI and reload the browser tab. No extra Python packages are needed (it uses torch,
-numpy, Pillow and PyAV, which ComfyUI already has). Check that **Add Node → image → library** lists
-**Tagged Prompt** and **Library Image**.
-
-Don't run it alongside ComfyUI-Universal-Image-Mentions: its `@` popup and queue hook also act on
-`@tags`.
-
-**Uninstall:** delete `custom_nodes/comfyui-library-image` (for a link, that removes only the link) and
-restart ComfyUI. The libraries in `user/default/library_image` can be deleted too.
+**Uninstall:** delete `custom_nodes/comfyui-library-image` and restart ComfyUI. The libraries in
+`user/default/library_image` can be deleted too.
 
 ## Development
 
