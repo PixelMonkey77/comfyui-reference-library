@@ -7,7 +7,7 @@ redone after every UI change with one command:
 node tools/screenshots/make_screenshots.mjs
 ```
 
-It writes `01_…png` to `12_…png` into `docs/images/` (the images the main README shows) using the demo files in
+It writes `00_…png` to `12_…png` into `docs/images/` (the images the main README shows) using the demo files in
 `../Resources/{Characters,Environments,Icons}`. Options:
 
 | Option | Default | |

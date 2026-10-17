@@ -422,6 +422,44 @@ async function walkthrough() {
     { target: { sel: "{node} .tp-chip", index: Math.max(0, gem) }, text: "Click a thumbnail: its tag lights up", side: "bottom", dx: 40, dy: 50 },
   ]);
 
+  // 00. The main idea: only the text goes to the model; no image wires at all
+  await mouse("mouseMoved", 5, 5);
+  await ev(async () => {
+    const app = window.app;
+    const node = window.__shot.node;
+    app.canvas.ds.offset = [60, 190];
+    const nb = window.LiteGraph.createNode("GeminiNanoBanana2V2");
+    app.graph.add(nb);
+    nb.pos = [720, 60];
+    // Nano Banana 2.1 when this ComfyUI offers it. A throwaway ComfyUI isn't signed in, and may only
+    // be offered "Nano Banana 2": that one stays (same inputs; an unknown model would remove them).
+    const model = nb.widgets?.find((w) => w.name === "model");
+    const v21 = model?.options?.values?.find?.((v) => /2\.1/.test(v));
+    if (v21) {
+      model.value = v21;
+      model.callback?.(v21);
+    }
+    node.connect(0, nb, nb.inputs.findIndex((i) => i.name === "prompt"));
+    app.canvas.setDirty(true, true);
+    window.__shot.sels.nb = `.lg-node[data-node-id="${nb.id}"]`;
+    window.__shot.nb = nb;
+    await new Promise((r) => setTimeout(r, 1500));
+  });
+  await sleep(1500);
+  const NB = { sel: "{nb}" };
+  const nbImages = await ev(() => {
+    // The empty image input on the model node, if its slot can be found; else the node itself.
+    const el = [...document.querySelectorAll(window.__shot.sels.nb + " .lg-slot")].find((e) => /image_1/.test(e.textContent));
+    if (el) el.dataset.shotTarget = "nb-images";
+    return !!el;
+  });
+  await shot("00_no_image_wires", [NODE, NB], [
+    { target: nbImages ? { sel: '[data-shot-target="nb-images"]' } : NB, text: "No images wired into the model", side: "top", from: NB, dx: 40, dy: 30 },
+    { target: { sel: "{node} .tp-strip" }, text: "The tagged files go to its image inputs\nwhen you queue: image 1, image 2…", side: "bottom", from: NODE, dx: 40, dy: 40 },
+  ]);
+  await ev(() => window.app.graph.remove(window.__shot.nb));
+  await sleep(500);
+
   // 11. A file that isn't in a library: a Load Image plugged into the Tagged Prompt
   await mouse("mouseMoved", 5, 5);
   await ev(async () => {

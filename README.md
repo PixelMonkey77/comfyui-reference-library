@@ -3,22 +3,33 @@
 Tag your reference images, videos and audio in a prompt with **`@name`**, and the **Tagged Prompt**
 node wires them into model nodes with growing media inputs (**Nano Banana**, **Seedream**,
 **GPT Image**, **FLUX 3**, **Seedance**, **MiniMax H3**, **Qwen Image**, … see
-[Supported model nodes](#supported-model-nodes)) when you queue. Files stay where they are on disk: no Load nodes, no copying into ComfyUI's `input`
-folder.
+[Supported model nodes](#supported-model-nodes)) when you queue. Files stay where they are on disk:
+no copying into ComfyUI's `input` folder.
+
+## No image wires
+
+**You don't connect any images to the model node.** Usually every reference image needs its own Load
+Image node, wired into `image_1`, `image_2`, … of the model, and the prompt has to say "image 3" for the
+right one. Here the Tagged Prompt is the **only** connection: its `text` goes to the model's `prompt`,
+and that's it.
 
 <p align="center">
-  <img src="docs/images/08_prompt_with_tags.png" width="640" alt="A Tagged Prompt with tags and thumbnails">
+  <img src="docs/images/00_no_image_wires.png" width="760" alt="A Tagged Prompt connected to Nano Banana by its text only; no image inputs are wired">
 </p>
+
+When you queue, every file you tagged is loaded and plugged into the model's image (video, audio)
+inputs for you, in the order shown under the text, and `@Alex` becomes `image 1` in the prompt the
+model receives. Add a tag, and one more image goes along; remove it, and it's gone. The canvas stays
+the same two nodes, however many references you use.
 
 - **Asset libraries:** named collections of your files, referenced in place, shared by all workflows.
 - **`@` autocomplete** with thumbnails; tags colored by state; hover a tag for a preview.
-- **Queue-time wiring:** `@Alex` becomes `image 1` in the prompt sent to the model, and the file goes
-  to the matching input port.
 - **Images, videos and audio**, plus [files from other nodes](#files-that-arent-in-a-library)
   (Load Image, …), placed before or after the library files.
 
 ## Contents
 
+- [No image wires](#no-image-wires)
 - [Getting started](#getting-started)
 - [Tag colors](#tag-colors)
 - [What happens when you queue](#what-happens-when-you-queue)
@@ -96,7 +107,8 @@ Hover a thumbnail to highlight its tags; click it to jump to the tag (click agai
 ### 10. Connect it to a model
 
 Connect the node's **text** output to the model's `prompt` (directly, or through string nodes such
-as String Concatenate) and queue. Works inside subgraphs too. Which models work:
+as String Concatenate) and queue. Nothing else: the tagged files are wired into the model for you
+(see [No image wires](#no-image-wires)). Works inside subgraphs too. Which models work:
 [Supported model nodes](#supported-model-nodes).
 
 ### 11. Files that aren't in a library
