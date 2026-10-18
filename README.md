@@ -9,6 +9,8 @@ disk: no copying into ComfyUI's `input` folder.
 > **Requires Nodes 2.0.** Turn on **Settings → Comfy → Nodes 2.0 → Modern Node Design (Nodes 2.0)**.
 > The classic canvas nodes aren't supported. See [Install](#install).
 
+> **Highly experimental: use at your own risk.** See [Disclaimer](#disclaimer).
+
 ## No image wires
 
 **You don't connect any images to the model node.** Usually every reference image needs its own Load
@@ -45,6 +47,7 @@ the same two nodes, however many references you use.
 - [Safety](#safety)
 - [Install](#install)
 - [Development](#development)
+- [Disclaimer](#disclaimer)
 
 ## Getting started
 
@@ -356,6 +359,20 @@ Other tagging nodes that react to `@` in prompts can conflict with this one.
 - `tools/screenshots/`: recreates the images above, callouts included, with one command
   (`node tools/screenshots/make_screenshots.mjs`); see
   [`tools/screenshots/README.md`](tools/screenshots/README.md).
+
+## Releasing
+
+Releases go to the [Comfy Registry](https://registry.comfy.org), which ComfyUI Manager installs from.
+Bump `version` in `pyproject.toml` (and add a [`CHANGELOG.md`](CHANGELOG.md) entry) and push to `main`:
+the workflow in `.github/workflows/publish.yml` publishes it. One-time setup: a publisher on the
+registry, its id in `pyproject.toml` (`PublisherId`), and its API key as the repo secret
+`REGISTRY_ACCESS_TOKEN`. A version can't be published twice.
+
+## Disclaimer
+
+This tool is **highly experimental**. It is provided as is, without warranty of any kind. Use it at your
+own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
+libraries, workflows, API credits or anything else). The author accepts no liability.
 
 ## License
 

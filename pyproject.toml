@@ -12,7 +12,7 @@ dependencies = []
 Repository = "https://github.com/PixelMonkey77/comfyui-reference-library"
 
 [tool.comfy]
-PublisherId = ""   # your publisher id on registry.comfy.org, only needed to publish there
+PublisherId = ""   # TODO: your publisher id from registry.comfy.org (needed to publish)
 DisplayName = "Reference Library"
 Icon = ""
 includes = []
