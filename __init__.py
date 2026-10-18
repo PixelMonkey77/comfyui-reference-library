@@ -93,7 +93,7 @@ def _trust(request):
 
 
 _LOCAL_ONLY = "Changing the library works only on the computer running ComfyUI."
-_REFUSED = ("Refused: open ComfyUI at http://127.0.0.1 or http://localhost to use the image library "
+_REFUSED = ("Refused: open ComfyUI at http://127.0.0.1 or http://localhost to use the Reference Library "
             "(requests through other host names or from other websites are blocked for safety).")
 
 
@@ -130,7 +130,7 @@ _PS_DIALOG = r"""
 Add-Type -AssemblyName System.Windows.Forms
 $owner = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true }
 $d = New-Object System.Windows.Forms.OpenFileDialog
-$d.Title = 'Image library'
+$d.Title = 'Reference Library'
 $d.Multiselect = ($env:LI_MULTI -eq '1')
 $d.Filter = $env:LI_FILTER
 if ($env:LI_INIT -and (Test-Path -LiteralPath $env:LI_INIT -PathType Container)) { $d.InitialDirectory = $env:LI_INIT }
@@ -142,7 +142,7 @@ import json, os, sys, tkinter as tk
 from tkinter import filedialog
 r = tk.Tk(); r.withdraw(); r.attributes("-topmost", True)
 types = [(label, " ".join(p)) for label, p in json.loads(os.environ["LI_FILTER"])]
-kw = dict(parent=r, initialdir=os.environ.get("LI_INIT") or None, title="Image library", filetypes=types)
+kw = dict(parent=r, initialdir=os.environ.get("LI_INIT") or None, title="Reference Library", filetypes=types)
 if os.environ.get("LI_MULTI") == "1":
     sys.stdout.write("\n".join(filedialog.askopenfilenames(**kw)))
 else:
@@ -159,9 +159,9 @@ on run argv
 	activate
 	try
 		if init is "" then
-			set picked to choose file with prompt "Image library" of type exts multiple selections allowed multi
+			set picked to choose file with prompt "Reference Library" of type exts multiple selections allowed multi
 		else
-			set picked to choose file with prompt "Image library" of type exts default location (POSIX file init) multiple selections allowed multi
+			set picked to choose file with prompt "Reference Library" of type exts default location (POSIX file init) multiple selections allowed multi
 		end if
 	on error number -128
 		return ""
@@ -1152,7 +1152,7 @@ def _fingerprint(path):
     return hashlib.sha256(f"{path}|{st.st_mtime_ns}|{st.st_size}".encode()).hexdigest()
 
 
-_UNTRUSTED = ("this folder hasn't been used with the image library yet. For safety, Library nodes only "
+_UNTRUSTED = ("this folder hasn't been used with the Reference Library yet. For safety, Reference Image/Video/Audio nodes only "
               "read files from folders you picked a file in (Browse… or + Add) or that hold library files. "
               "Click Browse… on the node and pick the file once; after that, paths in this folder work.")
 
@@ -1328,15 +1328,15 @@ class TaggedPrompt:
 
 
 class LibraryImageBatch:
-    """Stacks the Tagged Prompt's images into one batch (for models with a single `images` input, like
-    Nano Banana Pro). Added at queue time for the Tagged Prompt's "images" output; never on the canvas.
+    """Stacks the Reference Prompt's images into one batch (for models with a single `images` input, like
+    Nano Banana Pro). Added at queue time for the Reference Prompt's "images" output; never on the canvas.
 
     A batch needs one size: every image is made the size of the first. "pad" (default) fits each one
     inside and fills the rest, so nothing is cut off; "crop" fills and cuts the edges (ComfyUI's Batch
     Images behaviour); "stretch" ignores the aspect ratio."""
 
     MAX_IMAGES = 64
-    # Internal: keeps it out of the node search (the Tagged Prompt adds it when needed).
+    # Internal: keeps it out of the node search (the Reference Prompt adds it when needed).
     DEPRECATED = True
 
     @classmethod
@@ -1390,11 +1390,11 @@ NODE_CLASS_MAPPINGS = {
     "LibraryImageBatch": LibraryImageBatch,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "LibraryImage": "Library Image",
-    "LibraryVideo": "Library Video",
-    "LibraryAudio": "Library Audio",
-    "TaggedPrompt": "Tagged Prompt",
-    "LibraryImageBatch": "Tagged Images Batch (internal)",
+    "LibraryImage": "Reference Image",
+    "LibraryVideo": "Reference Video",
+    "LibraryAudio": "Reference Audio",
+    "TaggedPrompt": "Reference Prompt",
+    "LibraryImageBatch": "Reference Images Batch (internal)",
 }
 WEB_DIRECTORY = "./web"
 

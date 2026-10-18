@@ -1,4 +1,4 @@
-// Tagged Prompt: colored @tags in the editor (a mirror layer behind the textarea).
+// Reference Prompt: colored @tags in the editor (a mirror layer behind the textarea).
 import { getWidget, mentionRe, tagKey } from "./common.js";
 import { currentGraph, elementOfNode, widgetElement } from "./compat.js";
 import { planFor } from "./tp_plan.js";

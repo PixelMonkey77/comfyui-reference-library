@@ -1,4 +1,4 @@
-// Tagged Prompt: per-node settings, what is plugged in where (extras, targets, sources), and claims.
+// Reference Prompt: per-node settings, what is plugged in where (extras, targets, sources), and claims.
 import {
   getWidget, hasMediaPorts, KINDS, library, mediaPorts, mentionRe, mentionsIn, splitTag, stem, tagKey, tagName,
   toast, viewUrl,
@@ -73,7 +73,7 @@ const SOURCE_WIDGETS = {
 };
 
 function uiSourceName(src, slot = 0) {
-  // A Tagged Prompt's own "@name" outputs carry that asset.
+  // A Reference Prompt's own "@name" outputs carry that asset.
   if (isTaggedPrompt(src)) return slot > 0 ? outputAssetName(src.outputs?.[slot]) : null;
   const w = SOURCE_WIDGETS[src?.comfyClass ?? src?.type];
   if (!w) return null;
@@ -88,7 +88,7 @@ export function apiSourceName(src) {
   return name || (typeof path === "string" ? stem(path) : null);
 }
 
-// image_N / video_N / audio_N inputs on the Tagged Prompt itself, for files used in this run only.
+// image_N / video_N / audio_N inputs on the Reference Prompt itself, for files used in this run only.
 // Each is placed First (before library tags) or Last (after them) on the target; within a group
 // they keep their input order.
 
@@ -135,7 +135,7 @@ export function localSources(node, extras = extraInputs(node), target = targetOf
     for (const kind of KINDS) {
       for (const p of mediaPorts(target, kind)) {
         const o = sourceOfInput(graph, p.inp);
-        if (!o || isTaggedPrompt(o.node)) continue; // a Tagged Prompt's @outputs are library assets
+        if (!o || isTaggedPrompt(o.node)) continue; // a Reference Prompt's @outputs are library assets
         const name = uiSourceName(o.node, o.slot);
         if (name) out.push({ src: sourceKey(node, o), base: tagName(name), kind, hand: p.n, node: o.node });
       }
@@ -305,7 +305,7 @@ export const unpluggedText = (claim) => {
 
 export const OUTPUT_TYPE = { image: "IMAGE", video: "VIDEO", audio: "AUDIO" };
 
-/** Tag carried by a Tagged Prompt output ("@Buttons" -> "Buttons", "@Lib_02/Buttons"), or null for "text". */
+/** Tag carried by a Reference Prompt output ("@Buttons" -> "Buttons", "@Lib_02/Buttons"), or null for "text". */
 export function outputAssetName(out) {
   const n = out?.name;
   return typeof n === "string" && n.startsWith("@") ? n.slice(1) : null;
@@ -386,7 +386,7 @@ export function autogrowMax(uiNode, kind) {
   return max;
 }
 
-/** Every Tagged Prompt node in the open workflow, including those inside subgraphs. */
+/** Every Reference Prompt node in the open workflow, including those inside subgraphs. */
 export function allPromptNodes() {
   const out = new Set();
   for (const g of allGraphs()) for (const n of nodesOf(g)) if (isTaggedPrompt(n)) out.add(n);

@@ -40,5 +40,5 @@ Each step in `walkthrough()` clicks, types, then calls
 `shot(name, [elements to frame], [callouts])`. A callout is
 `{ target, text, side: "right" | "left" | "top" | "bottom", from, dx, dy, bend }`: the label goes beyond the
 `from` element's edge (default: the target) and an arrow points at the target. Targets are
-`{ sel, text?, index? }`, where `{node}` in a selector stands for the Tagged Prompt node; `bend`
+`{ sel, text?, index? }`, where `{node}` in a selector stands for the Reference Prompt node; `bend`
 (pixels, negative = the other way) curves the arrow around content.

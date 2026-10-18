@@ -1,4 +1,4 @@
-// Tagged Prompt: where every tag and plugged-in file lands on the target. One placement core
+// Reference Prompt: where every tag and plugged-in file lands on the target. One placement core
 // (placeTags) is fed from the canvas (planFor: strip, ink, cards) and from the API prompt at queue
 // time (tp_bind.js), so what the node shows is what runs.
 import { assetKind, getWidget, KINDS, mediaLabel, mediaPorts, mentionsIn, splitTag, tagKey } from "./common.js";
@@ -99,7 +99,7 @@ export const claimSpec = (claims) => new Map([...claims].map(([key, { claim, sou
   claim, plugged: !!source, input: source?.extra?.input ?? null, hand: source?.hand ?? null, kind: source?.kind ?? claim.kind,
 }]));
 
-/** The plan for a Tagged Prompt on the canvas: { rows, extras, target } (see placeTags). */
+/** The plan for a Reference Prompt on the canvas: { rows, extras, target } (see placeTags). */
 export function planFor(node, text = getWidget(node, "text")?.value ?? "") {
   const target = targetOf(node);
   const graph = target?.graph ?? currentGraph();
@@ -107,7 +107,7 @@ export function planFor(node, text = getWidget(node, "text")?.value ?? "") {
   for (const kind of KINDS) {
     const ports = target ? mediaPorts(target, kind) : [];
     const used = new Set();
-    const assetPorts = new Map(); // library asset id -> port, for Tagged Prompt "@name" outputs wired by hand
+    const assetPorts = new Map(); // library asset id -> port, for Reference Prompt "@name" outputs wired by hand
     for (const p of ports.filter((x) => x.inp.link != null)) {
       used.add(p.n);
       const o = sourceOfInput(graph, p.inp);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Makes the walkthrough screenshots for the README: starts a throwaway ComfyUI (own temp folder,
-// only this pack loaded, straight from this repo), drives headless Chrome through the Tagged Prompt
+// only this pack loaded, straight from this repo), drives headless Chrome through the Reference Prompt
 // flows with a demo library built from a resources folder, draws the callouts, saves PNGs.
 // No dependencies: Node 22+ (built-in WebSocket) and an installed Chrome.
 //
@@ -58,7 +58,7 @@ const pickFile = (list, stemName) => list.find((p) => path.parse(p).name.toLower
 // ---------------------------------------------------------------- temp ComfyUI
 function prepareBase() {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "library-image-screens-"));
-  const pack = path.join(base, "custom_nodes", "comfyui-library-image");
+  const pack = path.join(base, "custom_nodes", "comfyui-reference-library");
   fs.mkdirSync(pack, { recursive: true });
   fs.copyFileSync(path.join(REPO, "__init__.py"), path.join(pack, "__init__.py"));
   fs.cpSync(path.join(REPO, "web"), path.join(pack, "web"), { recursive: true });
@@ -89,7 +89,7 @@ async function startComfy(base, fake) {
   const logFile = fs.openSync(path.join(base, "comfy.log"), "w");
   const proc = spawn(PYTHON, [path.join(COMFY, "main.py"), "--base-directory", base, "--port", String(PORT),
     "--listen", "127.0.0.1", "--cpu", "--disable-auto-launch", "--disable-all-custom-nodes",
-    "--whitelist-custom-nodes", "comfyui-library-image", "--front-end-root", FRONTEND], {
+    "--whitelist-custom-nodes", "comfyui-reference-library", "--front-end-root", FRONTEND], {
     cwd: COMFY, env: { ...process.env, LIBRARY_IMAGE_FAKE_DIALOG: fake }, stdio: ["ignore", logFile, logFile],
     windowsHide: true,
   });
@@ -281,7 +281,7 @@ async function setupPage() {
   }
   await sleep(2500);
   await ev(PAGE_HELPERS);
-  // Close whatever greets a new user, then one Tagged Prompt on an empty canvas.
+  // Close whatever greets a new user, then one Reference Prompt on an empty canvas.
   await ev(async () => {
     for (let i = 0; i < 4; i++) {
       document.querySelectorAll(".p-dialog-close-button, .p-dialog-header-close, .p-toast-close-button").forEach((b) => b.click());
@@ -312,7 +312,7 @@ async function setupPage() {
 
 async function walkthrough() {
   // 1. The node
-  await shot("01_tagged_prompt_node", [NODE], [
+  await shot("01_reference_prompt_node", [NODE], [
     { target: { sel: ".tp-libs" }, text: "Your libraries", side: "left", from: NODE, dx: 50, dy: 40 },
     { target: { sel: ".tp-hbtn", index: 2 }, text: "Show images / videos / audio in the @ list", side: "top", from: NODE, dx: 140, dy: 30 },
     { target: { sel: ".tp-hbtn", index: 4 }, text: "Add files", side: "right", from: NODE, dx: 50 },
@@ -387,7 +387,7 @@ async function walkthrough() {
 
   // More demo files for a fuller prompt (no screenshots): two more libraries
   await ev(async (env, icons) => {
-    const { library } = await import("/extensions/comfyui-library-image/common.js");
+    const { library } = await import("/extensions/comfyui-reference-library/common.js");
     if (env.length) await library.add({ new_library: "Environments" }, env.map((p) => ({ path: p })));
     if (icons.length) await library.add({ new_library: "Icons" }, icons.map((p) => ({ path: p })));
     window.__shot.setText("");
@@ -495,7 +495,7 @@ async function walkthrough() {
   await ev(() => window.app.graph.remove(window.__shot.pro));
   await sleep(500);
 
-  // 11. A file that isn't in a library: a Load Image plugged into the Tagged Prompt
+  // 11. A file that isn't in a library: a Load Image plugged into the Reference Prompt
   await mouse("mouseMoved", 5, 5);
   await ev(async () => {
     const app = window.app;

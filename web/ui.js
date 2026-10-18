@@ -1,4 +1,4 @@
-// Small DOM kit shared by the Tagged Prompt UI: element helper, inline icons and a modal
+// Small DOM kit shared by the Reference Prompt UI: element helper, inline icons and a modal
 // styled like ComfyUI's own dialogs. Native prompt()/confirm() break keyboard input in
 // ComfyUI Desktop, so all dialogs here are plain DOM.
 

@@ -1,6 +1,6 @@
 [project]
-name = "comfyui-library-image"
-description = "Tag reference images, videos and audio in a prompt with @name and have them wired into API nodes (Nano Banana, Seedance, ...) from named asset libraries that reference files in place."
+name = "comfyui-reference-library"
+description = "A reference library for ComfyUI: keep reference images, videos and audio in named libraries (files stay in place), type @name in a Reference Prompt and they are wired into model nodes (Nano Banana, Seedance, ...) when you queue."
 version = "0.1.0"
 license = { file = "LICENSE" }
 readme = "README.md"
@@ -9,10 +9,10 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.urls]
-Repository = "https://github.com/PixelMonkey77/comfyui-library-image"
+Repository = "https://github.com/PixelMonkey77/comfyui-reference-library"
 
 [tool.comfy]
 PublisherId = ""   # your publisher id on registry.comfy.org, only needed to publish there
-DisplayName = "Library Image + Tagged Prompt"
+DisplayName = "Reference Library"
 Icon = ""
 includes = []

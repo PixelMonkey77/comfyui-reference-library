@@ -1,13 +1,13 @@
-// Library Image / Video / Audio nodes: Browse… button that fills the path via the server's native
+// Reference Image / Video / Audio nodes: Browse… button that fills the path via the server's native
 // file dialog, and a note when a typed path points into a folder the library hasn't used yet.
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 import { browseForFile, getWidget, setWidget, stem, tagName, toast } from "./common.js";
 
 const NODES = {
-  LibraryImage: { kind: "image", pathWidget: "image_path", title: "Library Image" },
-  LibraryVideo: { kind: "video", pathWidget: "path", title: "Library Video" },
-  LibraryAudio: { kind: "audio", pathWidget: "path", title: "Library Audio" },
+  LibraryImage: { kind: "image", pathWidget: "image_path", title: "Reference Image" },
+  LibraryVideo: { kind: "video", pathWidget: "path", title: "Reference Video" },
+  LibraryAudio: { kind: "audio", pathWidget: "path", title: "Reference Audio" },
 };
 
 const CSS = `
@@ -81,8 +81,8 @@ function noteElement() {
   const b = document.createElement("b");
   b.textContent = "⚠ New folder. ";
   el.append(b, document.createTextNode(
-    "For safety, Library nodes only read files from folders you've already used: ones you picked a file in "
-    + "with Browse… (or + Add in a Tagged Prompt), or that hold library files. Click Browse… and pick this file "
+    "For safety, Reference Image/Video/Audio nodes only read files from folders you've already used: ones you picked a file in "
+    + "with Browse… (or + Add in a Reference Prompt), or that hold library files. Click Browse… and pick this file "
     + "once; after that, paths in this folder work, typed ones too."));
   return el;
 }

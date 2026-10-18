@@ -1,4 +1,4 @@
-// Tagged Prompt: queue-time binding of tags to the target's ports. Placement comes from the same
+// Reference Prompt: queue-time binding of tags to the target's ports. Placement comes from the same
 // core as the canvas (placeTags in tp_plan.js), fed from the API prompt.
 import { assetKind, isPromptKey, KINDS, library, LOADERS, mediaPorts, mentionRe, mentionsIn, portNum, tagKey } from "./common.js";
 import { nodeForExecId, outputTypeOf } from "./compat.js";
@@ -10,7 +10,7 @@ import { claimSpec, placeTags } from "./tp_plan.js";
 
 /**
  * The nodes that produce a prompt input's text: the source node, and further up every node feeding
- * it through a STRING output (concat, replace, ...), stopping at Tagged Prompts. Head first.
+ * it through a STRING output (concat, replace, ...), stopping at Reference Prompts. Head first.
  */
 function promptChain(output, link) {
   const chain = [];
@@ -32,7 +32,7 @@ const stringsOf = (node) => Object.values(node?.inputs ?? {}).filter((x) => type
 
 /**
  * For every node with auto-grow media ports in the API prompt:
- *   1. add a hidden Library Image/Video/Audio loader for each @tag that is in the library but not
+ *   1. add a hidden Reference Image/Video/Audio loader for each @tag that is in the library but not
  *      wired yet, and wire plugged-in files, on the ports placeTags picks;
  *   2. rewrite @tags in its prompt (wherever along the string chain they were typed) to "image N" /
  *      "Video N" / "Audio N" (N = rank among the connected ports of that kind).
@@ -49,7 +49,7 @@ export function bindPrompt(output) {
     return id;
   };
   const cloned = new Set();
-  const bound = new Set(); // Tagged Prompts whose text reached a model node they could fill
+  const bound = new Set(); // Reference Prompts whose text reached a model node they could fill
 
   // One hidden loader per library file, shared by every target and output that uses it.
   const loaders = new Map();
@@ -67,12 +67,12 @@ export function bindPrompt(output) {
     return loaders.get(asset.id);
   };
 
-  // 0. A Tagged Prompt's outputs after "text" exist only on the canvas (the server node has just
+  // 0. A Reference Prompt's outputs after "text" exist only on the canvas (the server node has just
   //    "text"): a library file's "@name" output reads from that file's loader, a plugged-in file's from
   //    the plugged-in file itself, and "images" from a batch built below, once the order is known.
-  const outputsUsed = new Set(); // Tagged Prompts with any of those outputs wired
-  const fileReaders = new Map(); // Tagged Prompt id -> ids of the nodes reading those outputs
-  const batchReaders = new Map(); // Tagged Prompt id -> [[consumer, input key]] reading "images"
+  const outputsUsed = new Set(); // Reference Prompts with any of those outputs wired
+  const fileReaders = new Map(); // Reference Prompt id -> ids of the nodes reading those outputs
+  const batchReaders = new Map(); // Reference Prompt id -> [[consumer, input key]] reading "images"
   for (const [id, node] of Object.entries(output)) {
     if (node.class_type !== NODE_TYPE) continue;
     const uiNode = nodeForExecId(id);
@@ -99,7 +99,7 @@ export function bindPrompt(output) {
         }
         const res = (uiNode && out && outputAsset(uiNode, out)) || { status: "unknown", asset: null };
         if (res.status !== "ok") {
-          errors.push(`${uiNode?.title ?? "Tagged Prompt"}: output ${outName ?? `#${v[1]}`} ${problem(res, uiNode)}`);
+          errors.push(`${uiNode?.title ?? "Reference Prompt"}: output ${outName ?? `#${v[1]}`} ${problem(res, uiNode)}`);
           continue;
         }
         consumer.inputs[k] = [loaderFor(res.asset), 0];
@@ -107,7 +107,7 @@ export function bindPrompt(output) {
     }
   }
 
-  // Order of the tagged files for Tagged Prompts whose outputs are used, numbered without a target
+  // Order of the tagged files for Reference Prompts whose outputs are used, numbered without a target
   // ("@Coin (1)" = image 1): taken now, before any target rewrites their text.
   const standalone = new Map([...outputsUsed].filter((id) => nodeForExecId(id))
     .map((id) => [id, standalonePlan(nodeForExecId(id), output[id])]));
@@ -126,7 +126,7 @@ export function bindPrompt(output) {
     const label = uiNode?.title ?? `node ${id}`;
 
     // The prompt: an input whose text (typed here, or produced upstream through string nodes) has
-    // @tags, or (even without tags) one fed by a Tagged Prompt, whose plugged-in files need placing.
+    // @tags, or (even without tags) one fed by a Reference Prompt, whose plugged-in files need placing.
     const candidates = Object.keys(inputs).filter(isPromptKey).map((key) => {
       const v = inputs[key];
       const chain = Array.isArray(v) ? promptChain(output, v) : [];
@@ -136,7 +136,7 @@ export function bindPrompt(output) {
     const pick = candidates.find((c) => c.texts.some((t) => mentionsIn(t).length)) ?? candidates.find((c) => c.tps.length);
     if (!pick) continue;
     if (pick.tps.length > 1) {
-      errors.push(`${label}: its prompt combines ${pick.tps.length} Tagged Prompts; use one Tagged Prompt per model node.`);
+      errors.push(`${label}: its prompt combines ${pick.tps.length} Reference Prompts; use one Reference Prompt per model node.`);
       continue;
     }
     const tpId = pick.tps[0] ?? null;
@@ -161,9 +161,9 @@ export function bindPrompt(output) {
         assetPorts, portName: prefixes[kind] ?? null };
     }
 
-    // Plugged-in files of the Tagged Prompt, as they are in the API prompt.
+    // Plugged-in files of the Reference Prompt, as they are in the API prompt.
     const extras = apiExtras(tpUi, src);
-    // Names of non-library files: the Tagged Prompt's claims; for a prompt typed into the target
+    // Names of non-library files: the Reference Prompt's claims; for a prompt typed into the target
     // itself, the files wired into it by hand answer to their names.
     let claims;
     if (tpUi) claims = claimSpec(claimsOf(tpUi));
@@ -222,7 +222,7 @@ export function bindPrompt(output) {
       inputs[pick.key] = [copy.get(pick.chain[0]), pick.v[1]];
     }
   }
-  // Tagged Prompts whose outputs are used but whose text reached no model they could fill (e.g. the
+  // Reference Prompts whose outputs are used but whose text reached no model they could fill (e.g. the
   // text goes to Nano Banana Pro, which takes the "images" batch): tags become "image 1", "image 2"… in
   // output order, the same order as the batch and the "(1)" on the outputs.
   for (const [id, plan] of standalone) {
@@ -236,7 +236,7 @@ export function bindPrompt(output) {
     const readers = textReaders(output, id);
     if (plan.rows.some((r) => r.ok) && readers.length && !reaches(output, fileReaders.get(id), readers)) {
       const model = nodeForExecId(readers[0])?.title ?? output[readers[0]]?._meta?.title ?? "The model";
-      errors.push(`${tpUi.title}: ${model} gets its text but none of the tagged files. Connect the Tagged Prompt's `
+      errors.push(`${tpUi.title}: ${model} gets its text but none of the tagged files. Connect the Reference Prompt's `
         + `"images" output to ${model}'s images input (or its @name outputs, batched your way).`);
     }
     const labelOf = new Map(plan.rows.filter((r) => r.ok && r.label).map((r) => [tagKey(r.tok), r.label]));
@@ -270,7 +270,7 @@ export function bindPrompt(output) {
     for (const [consumer, k] of readers) consumer.inputs[k] = [batchId, 0];
   }
 
-  // The server-side Tagged Prompt has only "text": its extra inputs were moved onto the targets above.
+  // The server-side Reference Prompt has only "text": its extra inputs were moved onto the targets above.
   for (const node of Object.values(output)) {
     if (node.class_type !== NODE_TYPE) continue;
     for (const k of Object.keys(node.inputs ?? {})) if (EXTRA_RE.test(k)) delete node.inputs[k];
@@ -286,15 +286,15 @@ export function bindPrompt(output) {
       }
     }
   }
-  // A Tagged Prompt with @tags whose text reaches no node it can fill would send the raw "@Alex" to
+  // A Reference Prompt with @tags whose text reaches no node it can fill would send the raw "@Alex" to
   // a model that gets no images (LTX 2.5, an open-model text encoder without image inputs, ...).
   for (const [id, node] of Object.entries(output)) {
     if (node.class_type !== NODE_TYPE || bound.has(id)) continue;
     const tags = Object.values(node.inputs ?? {}).filter((v) => typeof v === "string").flatMap(mentionsIn);
     if (!tags.length) continue;
-    const title = nodeForExecId(id)?.title ?? "Tagged Prompt";
+    const title = nodeForExecId(id)?.title ?? "Reference Prompt";
     errors.push(`${title}: its @tags (@${tags[0]}…) can't be sent: the model it feeds gets none of the tagged `
-      + "files. For a model with one \"images\" input (Nano Banana Pro, …), also connect the Tagged Prompt's "
+      + "files. For a model with one \"images\" input (Nano Banana Pro, …), also connect the Reference Prompt's "
       + "\"images\" output to it (or its @name outputs, batched your way). Otherwise connect it to a model with "
       + "image_1, image_2… inputs (see Supported model nodes in the README).");
   }
@@ -303,7 +303,7 @@ export function bindPrompt(output) {
 
 const BATCH_MAX = 64; // LibraryImageBatch's inputs
 
-/** Nodes whose prompt input gets this Tagged Prompt's text (directly or through string nodes). */
+/** Nodes whose prompt input gets this Reference Prompt's text (directly or through string nodes). */
 function textReaders(output, tpId) {
   return Object.entries(output).filter(([nid, n]) => n.class_type !== NODE_TYPE && Object.entries(n.inputs ?? {})
     .some(([k, v]) => isPromptKey(k) && Array.isArray(v) && promptChain(output, v).includes(String(tpId)))).map(([nid]) => nid);
@@ -329,7 +329,7 @@ function reaches(output, from, targets) {
   return false;
 }
 
-/** The Tagged Prompt's plugged-in files as they are in the API prompt: [{ kind, input, link, before }]. */
+/** The Reference Prompt's plugged-in files as they are in the API prompt: [{ kind, input, link, before }]. */
 function apiExtras(tpUi, src) {
   const extras = [];
   for (const inp of tpUi?.inputs ?? []) {
@@ -354,11 +354,11 @@ function planProblems(plan, label, tpUi) {
   const say = (msg) => !out.includes(msg) && out.push(msg);
   for (const r of plan.rows) {
     if (r.status === "unplugged") say(`${label}: @${r.tok}: ${unpluggedText(r.claim)}`);
-    // Without a Tagged Prompt, an unknown "@word" typed into the model's own prompt is just text.
+    // Without a Reference Prompt, an unknown "@word" typed into the model's own prompt is just text.
     else if (!r.claim && r.status !== "ok" && (tpUi || r.status !== "unknown")) say(`${label}: @${r.tok} ${problem(r, tpUi)}`);
     else if (r.unsupported) say(`${label}: @${r.tok} can't be placed: ${r.unsupported}.`);
   }
-  for (const x of plan.extras) if (x.unsupported) say(`${label}: ${tpUi?.title ?? "Tagged Prompt"} ${x.input} can't be placed: ${x.unsupported}.`);
+  for (const x of plan.extras) if (x.unsupported) say(`${label}: ${tpUi?.title ?? "Reference Prompt"} ${x.input} can't be placed: ${x.unsupported}.`);
   return out;
 }
 

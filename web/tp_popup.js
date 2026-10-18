@@ -1,4 +1,4 @@
-// Tagged Prompt: the @ autocomplete popup and editor listeners.
+// Reference Prompt: the @ autocomplete popup and editor listeners.
 import { assetKind, getWidget, library, MENTION_AT_CARET, tagKey, tagTail, toast } from "./common.js";
 import { currentGraph, nodeFromElement, nodesOf, widgetElement } from "./compat.js";
 import { confirmModal, openAddDialog, openEditDialog } from "./dialogs.js";
@@ -13,7 +13,7 @@ import { extraThumb, refreshStrip, scheduleStrip } from "./tp_strip.js";
 import { installStyle, mediaThumb } from "./tp_style.js";
 import { h } from "./ui.js";
 
-/** The Tagged Prompt node owning a textarea (works for Vue-rendered and classic nodes). */
+/** The Reference Prompt node owning a textarea (works for Vue-rendered and classic nodes). */
 function promptNodeFor(el) {
   if (!(el instanceof HTMLTextAreaElement)) return null;
   const node = nodeFromElement(el)
@@ -77,7 +77,7 @@ export const popup = {
     installStyle();
     const el = h("div", "tp-popup", { hidden: true });
     const head = h("div", "tp-head");
-    const title = h("span", "tp-title", { textContent: "Image library" });
+    const title = h("span", "tp-title", { textContent: "Reference Library" });
     const add = h("button", "tp-btn", { type: "button", textContent: "+ Add", title: "Add images, videos or audio files" });
     add.onclick = () => this.addImages();
     head.append(title, add);

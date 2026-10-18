@@ -1,4 +1,4 @@
-// Tagged Prompt: stylesheet and the asset thumbnail used by the popup and the strip.
+// Reference Prompt: stylesheet and the asset thumbnail used by the popup and the strip.
 import { assetKind, formatDuration, library } from "./common.js";
 import { h } from "./ui.js";
 

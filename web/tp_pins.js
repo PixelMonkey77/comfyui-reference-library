@@ -1,4 +1,4 @@
-// Tagged Prompt: keeping tags on their files across library changes.
+// Reference Prompt: keeping tags on their files across library changes.
 import { getWidget, library, mentionRe, splitTag, tagKey } from "./common.js";
 import { editorOf } from "./tp_ink.js";
 import {

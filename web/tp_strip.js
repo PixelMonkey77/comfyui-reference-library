@@ -1,4 +1,4 @@
-// Tagged Prompt: the strip of tagged assets, the header, and the @name outputs.
+// Reference Prompt: the strip of tagged assets, the header, and the @name outputs.
 import { assetKind, getWidget, KINDS, library, mentionsIn, splitTag, tagKey } from "./common.js";
 import { openAddDialog, toggleLibraryPanel } from "./dialogs.js";
 import { highlightTag, jumpToTag, renderInk, sweepInks } from "./tp_ink.js";

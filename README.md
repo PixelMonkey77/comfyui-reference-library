@@ -1,10 +1,10 @@
-# Library Image + Tagged Prompt for ComfyUI
+# Reference Library for ComfyUI
 
-Tag your reference images, videos and audio in a prompt with **`@name`**, and the **Tagged Prompt**
-node wires them into model nodes with growing media inputs (**Nano Banana**, **Seedream**,
-**GPT Image**, **FLUX 3**, **Seedance**, **MiniMax H3**, **Qwen Image**, … see
-[Supported model nodes](#supported-model-nodes)) when you queue. Files stay where they are on disk:
-no copying into ComfyUI's `input` folder.
+A reference library for ComfyUI. Keep your characters, places, props, clips and sounds in **named
+libraries**, then type **`@name`** in a **Reference Prompt** and they're wired into the model when you
+queue: **Nano Banana**, **Seedream**, **GPT Image**, **FLUX 3**, **Seedance**, **MiniMax H3**,
+**Qwen Image**, … (see [Supported model nodes](#supported-model-nodes)). Files stay where they are on
+disk: no copying into ComfyUI's `input` folder.
 
 > **Requires Nodes 2.0.** Turn on **Settings → Comfy → Nodes 2.0 → Modern Node Design (Nodes 2.0)**.
 > The classic canvas nodes aren't supported. See [Install](#install).
@@ -13,11 +13,11 @@ no copying into ComfyUI's `input` folder.
 
 **You don't connect any images to the model node.** Usually every reference image needs its own Load
 Image node, wired into `image_1`, `image_2`, … of the model, and the prompt has to say "image 3" for the
-right one. Here the Tagged Prompt is the **only** connection: its `text` goes to the model's `prompt`,
+right one. Here the Reference Prompt is the **only** connection: its `text` goes to the model's `prompt`,
 and that's it.
 
 <p align="center">
-  <img src="docs/images/00_no_image_wires.png" width="760" alt="A Tagged Prompt connected to Nano Banana by its text only; no image inputs are wired">
+  <img src="docs/images/00_no_image_wires.png" width="760" alt="A Reference Prompt connected to Nano Banana by its text only; no image inputs are wired">
 </p>
 
 When you queue, every file you tagged is loaded and plugged into the model's image (video, audio)
@@ -41,19 +41,19 @@ the same two nodes, however many references you use.
 - [Files that aren't in a library](#files-that-arent-in-a-library)
 - [Outputs: every tagged file, and a batch](#outputs-every-tagged-file-and-a-batch)
 - [Libraries in detail](#libraries-in-detail)
-- [Library Image / Video / Audio nodes](#library-image--video--audio-nodes)
+- [Reference Image / Video / Audio nodes](#reference-image--video--audio-nodes)
 - [Safety](#safety)
 - [Install](#install)
 - [Development](#development)
 
 ## Getting started
 
-### 1. The Tagged Prompt node
+### 1. The Reference Prompt node
 
-Add it from **Add Node → image → library → Tagged Prompt**. The header holds your libraries, the
+Add it from **Add Node → image → library → Reference Prompt**. The header holds your libraries, the
 filters for the `@` list, and the button to add files.
 
-<img src="docs/images/01_tagged_prompt_node.png" width="720" alt="The Tagged Prompt node">
+<img src="docs/images/01_reference_prompt_node.png" width="720" alt="The Reference Prompt node">
 
 ### 2. Create your first library
 
@@ -145,7 +145,7 @@ For each model node with growing media inputs whose prompt contains `@tags`:
    numbered by input order. The canvas keeps the `@tags`.
 
 Queueing is refused, with a message saying why, when a tag can't be used (see [Tag colors](#tag-colors)),
-when a prompt tags more files than the model takes, or when a Tagged Prompt with tags isn't connected to
+when a prompt tags more files than the model takes, or when a Reference Prompt with tags isn't connected to
 any model it can fill (so raw `@tags` are never sent). A stray `@word` typed straight into a model's own
 prompt is left as text, and e-mail addresses like `me@x.com` are ignored.
 
@@ -203,25 +203,25 @@ are rewritten), not by paid runs:
 Reference-to-video nodes (Seedance, MiniMax H3, Vidu, HeyGen) are told `Image 1`, `Video 1`,
 `Audio 1`; the others `image 1`.
 
-**Models with one `images` batch input** (Nano Banana Pro, Nano Banana, …): connect the Tagged Prompt's
+**Models with one `images` batch input** (Nano Banana Pro, Nano Banana, …): connect the Reference Prompt's
 `images` output too, see [Older models with one image input](#older-models-with-one-image-input).
 
 **Not supported:** nodes with a single image input, or one batch input, such as **LTX 2.5** (API: Image /
 Audio to Video), the **LTX-2** open-model nodes, and the **MiniMax H3** open model (Reference to Video takes
 `ref_images` as one batch). Wire files into those by hand (the `@name` outputs help), or try the `images`
-batch output where the model accepts a batch. A Tagged Prompt with `@tags` whose text reaches only such a
+batch output where the model accepts a batch. A Reference Prompt with `@tags` whose text reaches only such a
 node, with none of its outputs used, won't queue rather than send raw tags.
 
 ## Older models with one image input
 
 Using an old reliable model like **Nano Banana Pro**, with just one `images` input? No problem. These
-models take all their reference images as one batch, so the Tagged Prompt can't fill their inputs on its
+models take all their reference images as one batch, so the Reference Prompt can't fill their inputs on its
 own. That's what its **`images`** output is for. Connect two wires:
 
 1. **`text`** → the model's **`prompt`**
 2. **`images`** → the model's **`images`**
 
-<img src="docs/images/13_one_image_input_models.png" width="760" alt="Tagged Prompt wired to Nano Banana Pro: text into prompt, images into images">
+<img src="docs/images/13_one_image_input_models.png" width="760" alt="Reference Prompt wired to Nano Banana Pro: text into prompt, images into images">
 
 That's it. When you queue:
 
@@ -238,7 +238,7 @@ crop or pad each image your way, then batch them with your own nodes, in the ord
 of the tagged files, rather than running without your references.
 
 **Why isn't this automatic?** This is legacy support: newer models have separate `image_1`, `image_2`…
-inputs, which the Tagged Prompt fills on its own, no wires needed. For batch-input models the `images`
+inputs, which the Reference Prompt fills on its own, no wires needed. For batch-input models the `images`
 wire stays manual on purpose, so you always see where the padding happens and can swap in your own
 resizing.
 
@@ -247,13 +247,13 @@ resizing.
 Images, videos and audio from any other node (**Load Image**, **Load Video**, **Load Audio**, a
 generated image, …) can be tagged too, for the current run, without adding them to a library.
 
-**1. Plug it in.** Connect the file to the Tagged Prompt's `image_1` (or `video_1`, `audio_1`). A new
+**1. Plug it in.** Connect the file to the Reference Prompt's `image_1` (or `video_1`, `audio_1`). A new
 free input appears each time one is used.
 
-**2. Tag it.** It is named after its file (`Night_Forest.png` → `@Night_Forest`; a Library Image node's
+**2. Tag it.** It is named after its file (`Night_Forest.png` → `@Night_Forest`; a Reference Image node's
 `name` works too). It is listed first in the `@` list, marked *this run*, and gets a thumbnail in the strip.
 
-<img src="docs/images/11_plug_in_a_file.png" width="760" alt="A Load Image plugged into the Tagged Prompt and tagged by its file name">
+<img src="docs/images/11_plug_in_a_file.png" width="760" alt="A Load Image plugged into the Reference Prompt and tagged by its file name">
 
 **3. Choose its place: before or after the library files.** The button under its thumbnail switches between
 **⇤ First** (the default: it takes the first inputs, before the library files) and **Last ⇥** (after
@@ -274,11 +274,11 @@ Good to know:
   different file. Plug it back in (or click the red tag to use a library file of that name).
 - You can also wire a file **straight into the model's input**; it keeps that input, and its file name
   works as a tag.
-- It also gets its own output on the Tagged Prompt, like library files: see [Outputs](#outputs-every-tagged-file-and-a-batch).
+- It also gets its own output on the Reference Prompt, like library files: see [Outputs](#outputs-every-tagged-file-and-a-batch).
 
 ## Outputs: every tagged file, and a batch
 
-Next to `text`, the Tagged Prompt has an output for **every tagged file**, library files and plugged-in
+Next to `text`, the Reference Prompt has an output for **every tagged file**, library files and plugged-in
 files alike, plus one **`images`** output with all tagged images as a batch. The number after each name is
 where that file goes: **`@Coin (1)`** is `image_1` (`(2)` is `image_2`, …). The numbers follow First/Last
 and match the numbers under the thumbnails and the "image 1, image 2…" in the prompt.
@@ -305,7 +305,7 @@ IP-Adapter, … An output that is wired to something stays even if its tag is re
   version (a damaged file is set aside and the backup restored). Thumbnails are cached next to it in
   `thumbs/`.
 
-## Library Image / Video / Audio nodes
+## Reference Image / Video / Audio nodes
 
 Load one file by full path, with **Browse…**. Optional, for wiring files by hand; their `name` works as
 an `@tag` too (so does a Load Image's file name).
@@ -327,7 +327,7 @@ then on paths in that folder work.
 
 ## Install
 
-**Requirement: Nodes 2.0.** The Tagged Prompt's thumbnails, `@` list, tag colors and dialogs are built
+**Requirement: Nodes 2.0.** The Reference Prompt's thumbnails, `@` list, tag colors and dialogs are built
 for ComfyUI's modern node design. Turn it on in **Settings → Comfy → Nodes 2.0 → Modern Node Design
 (Nodes 2.0)**. With the classic canvas nodes the pack doesn't work.
 
@@ -335,18 +335,18 @@ ComfyUI loads custom nodes from `ComfyUI/custom_nodes/`. For ComfyUI Desktop tha
 base folder you chose at setup (e.g. `Documents\ComfyUI\custom_nodes`); for the portable build it is
 `ComfyUI_windows_portable\ComfyUI\custom_nodes`.
 
-**ComfyUI Manager:** **Install via Git URL** → `https://github.com/PixelMonkey77/comfyui-library-image`
+**ComfyUI Manager:** **Install via Git URL** → `https://github.com/PixelMonkey77/comfyui-reference-library`
 
 **Git:**
 
 ```
 cd ComfyUI/custom_nodes
-git clone https://github.com/PixelMonkey77/comfyui-library-image
+git clone https://github.com/PixelMonkey77/comfyui-reference-library
 ```
 
 Other tagging nodes that react to `@` in prompts can conflict with this one.
 
-**Uninstall:** delete `custom_nodes/comfyui-library-image` and restart ComfyUI. The libraries in
+**Uninstall:** delete `custom_nodes/comfyui-reference-library` and restart ComfyUI. The libraries in
 `user/default/library_image` can be deleted too.
 
 ## Development

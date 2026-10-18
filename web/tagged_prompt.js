@@ -1,4 +1,4 @@
-// Tagged Prompt node: registration. The node has an @tag autocomplete over the asset libraries
+// Reference Prompt node: registration. The node has an @tag autocomplete over the asset libraries
 // (tp_popup), colored tags (tp_ink), a header and a strip of the tagged files (tp_strip), cards
 // (tp_hover), and a queue-time hook that wires the files into the target's auto-grow ports and
 // rewrites @tags to "image N" / "Video N" / "Audio N" (tp_bind, with placement from tp_plan).
@@ -124,7 +124,7 @@ app.registerExtension({
         console.error("[TaggedPrompt] binding failed", e);
         errors = [`Tag binding failed: ${e.message}`];
       }
-      for (const msg of errors) toast("error", msg, "Tagged prompt");
+      for (const msg of errors) toast("error", msg, "Reference prompt");
       return errors;
     });
   },

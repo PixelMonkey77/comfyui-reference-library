@@ -1,4 +1,4 @@
-// Tagged Prompt: hover cards for tags, ports and chips, and their actions.
+// Reference Prompt: hover cards for tags, ports and chips, and their actions.
 import { assetKind, getWidget, library, mentionRe, splitTag, tagKey } from "./common.js";
 import { isOutputSlot, nodeFromElement, slotElementOf } from "./compat.js";
 import { openEditDialog } from "./dialogs.js";
@@ -146,7 +146,7 @@ function hoverTag(span, ink, pinned = false) {
   hover.show(span, info, span.getClientRects()[0] ?? span.getBoundingClientRect(), { pinned });
 }
 
-/** Card for a Tagged Prompt port (an "@name" output or an extra input) under the mouse. */
+/** Card for a Reference Prompt port (an "@name" output or an extra input) under the mouse. */
 function hoverPort(slotEl) {
   if (hover.key === slotEl) return true;
   const node = nodeFromElement(slotEl);

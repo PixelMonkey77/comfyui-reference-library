@@ -1,4 +1,4 @@
-# Tests for comfyui-library-image
+# Tests for comfyui-reference-library
 
 Development only: ComfyUI never loads this folder (it imports `__init__.py` and serves `web/`).
 
@@ -20,10 +20,10 @@ test_security.py (request trust, trusted folders, no validation leaks, /file har
 ## Frontend regression harness (harness.js)
 13 scenarios: strip/ink on the canvas + the API prompt binding (incl. claims Test 01/02, string chains,
 subgraph boundary, muted files). Needs a running ComfyUI, the library assets above, and the Nano Banana 2.1 node.
-To run: copy harness.js to custom_nodes/comfyui-library-image/web/_harness.txt (a .js there would load as an
+To run: copy harness.js to custom_nodes/comfyui-reference-library/web/_harness.txt (a .js there would load as an
 extension), then in the browser console:
 
-    const src = await (await fetch("/extensions/comfyui-library-image/_harness.txt")).text();
+    const src = await (await fetch("/extensions/comfyui-reference-library/_harness.txt")).text();
     await new (Object.getPrototypeOf(async function(){}).constructor)(src.replace(/JSON\.stringify\(results, null, 1\)\s*$/, "return results;"))();
 
 Set `window.__harnessInput` to your ComfyUI input folder (ending in `/`) before running it.

@@ -1,4 +1,4 @@
-// Shared helpers for the Library Image / Tagged Prompt extensions.
+// Shared helpers for the Reference Image / Reference Prompt extensions.
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
@@ -7,7 +7,7 @@ export const KINDS = ["image", "video", "audio"];
 // Auto-grow media ports, e.g. "model.images.image_3" (Nano Banana),
 // "model.reference_images.image_3" / "model.reference_videos.video_2" / "model.reference_audios.audio_1" (Seedance).
 // Luma names them "model.image_ref.image_3". Any group whose name mentions the kind counts; a bare
-// "image_1" (the Tagged Prompt's own inputs) never does.
+// "image_1" (the Reference Prompt's own inputs) never does.
 const PORT_RE = {
   image: /(?:^|\.)[a-z_]*image[a-z_]*\.image_(\d+)$/i,
   video: /(?:^|\.)[a-z_]*video[a-z_]*\.video_(\d+)$/i,
@@ -140,7 +140,7 @@ export const setWidget = (node, name, value) => {
   }
 };
 
-export function toast(severity, detail, summary = "Image library") {
+export function toast(severity, detail, summary = "Reference Library") {
   const t = app.extensionManager?.toast;
   if (t?.add) t.add({ severity, summary, detail, life: severity === "error" ? 6000 : 3500 });
   else console[severity === "error" ? "error" : "warn"]("[LibraryImage]", detail);
@@ -251,7 +251,7 @@ export const library = {
         .catch((e) => {
           if (this._gen !== gen) return; // a newer state arrived meanwhile: this failure is moot
           console.warn("[LibraryImage] library unavailable", e);
-          if (this.error !== e.message) toast("error", `Image library unavailable: ${e.message}`);
+          if (this.error !== e.message) toast("error", `Reference Library unavailable: ${e.message}`);
           this.error = e.message;
         })
         .finally(() => (this._pending = null));

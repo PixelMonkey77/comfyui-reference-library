@@ -1,4 +1,4 @@
-// Tagged Prompt: auto-grow extra inputs (image_N / video_N / audio_N) kept in canonical order.
+// Reference Prompt: auto-grow extra inputs (image_N / video_N / audio_N) kept in canonical order.
 import { KINDS } from "./common.js";
 import { linkById, reconnectorFor } from "./compat.js";
 import { EXTRA_RE, isBefore, OUTPUT_TYPE } from "./tp_model.js";

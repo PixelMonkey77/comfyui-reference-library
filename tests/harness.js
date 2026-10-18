@@ -1,6 +1,8 @@
 // Regression harness: builds scenarios on the canvas, records strip chips + API binding, cleans up.
 const { app } = await import("/scripts/app.js");
-const m = await import("/extensions/comfyui-library-image/common.js");
+// The pack's folder in custom_nodes (set window.__harnessPack if yours differs).
+const PACK = `/extensions/${window.__harnessPack ?? "comfyui-reference-library"}`;
+const m = await import(`${PACK}/common.js`);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 for (let i = 0; i < 40 && !window.LiteGraph?.registered_node_types?.TaggedPrompt; i++) await wait(500);
 await m.library.load(true);
@@ -23,7 +25,7 @@ const describe = (o, id) => { const n = o[id]; if (!n) return `?${id}`; return `
 async function api() {
   try {
     const { output: o } = await app.graphToPrompt();
-    const { problemsOf } = await import("/extensions/comfyui-library-image/compat.js");
+    const { problemsOf } = await import(`${PACK}/compat.js`);
     const problems = problemsOf(o);
     if (problems) return [`ERROR ${problems.join(" / ")}`];
     const res = [];
@@ -43,11 +45,11 @@ async function api() {
 // page is hidden (as the browser pane often is), so refresh explicitly.
 const settle = async () => {
   await wait(1700);
-  (await import("/extensions/comfyui-library-image/tp_strip.js")).refreshAllStrips();
+  (await import(`${PACK}/tp_strip.js`)).refreshAllStrips();
   await wait(200);
 };
 const planOf = async (node) => {
-  const { planFor } = await import("/extensions/comfyui-library-image/tp_plan.js");
+  const { planFor } = await import(`${PACK}/tp_plan.js`);
   const p = planFor(node);
   return { target: p.target?.title ?? null, rows: p.rows.map((r) => `@${r.tok}=${r.state}[${r.label ?? r.status}]`).join(" "),
     extras: p.extras.map((x) => `${x.input}:${x.tag ?? x.name}[${x.label ?? "-"}]`).join(" ") };
@@ -139,7 +141,7 @@ await scenario("concat-shared", async () => {
   c.connect(0, t1, idx(t1, "prompt")); c.connect(0, t2, idx(t2, "prompt"));
   return { tps: [tp] };
 });
-// 8. @tags typed in a plain string node, through concat (no Tagged Prompt)
+// 8. @tags typed in a plain string node, through concat (no Reference Prompt)
 await scenario("typed-in-concat", async () => {
   const t = add("GeminiNanoBanana2V2", 900, 2000);
   const c = add("StringConcatenate", 450, 2000);
@@ -161,7 +163,7 @@ await scenario("muted-extra", async () => {
   a.mode = 2;
   return { tps: [tp] };
 });
-// 10. subgraph: Tagged Prompt inside, its text leaves through the subgraph output to a target outside;
+// 10. subgraph: Reference Prompt inside, its text leaves through the subgraph output to a target outside;
 //     a Load Image outside feeds an extra input through the subgraph input
 await scenario("subgraph-boundary", async () => {
   const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 900, 2000);
