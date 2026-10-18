@@ -44,9 +44,17 @@ print(ok(pack._fold("Straße") != pack._fold("STRASSE") and pack._fold("ÉCOLE")
 lockpath = pack._library_file() + ".lock"
 os.makedirs(os.path.dirname(lockpath), exist_ok=True)
 holder = subprocess.Popen([sys.executable, "-c", f"""
-import msvcrt, time
-f = open(r"{lockpath}", "a+b"); f.seek(0); msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
-print("held", flush=True); time.sleep(1.5); f.seek(0); msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+import sys, time
+f = open(r"{lockpath}", "a+b")
+if sys.platform == "win32":
+    import msvcrt; f.seek(0); msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+else:
+    import fcntl; fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+print("held", flush=True); time.sleep(1.5)
+if sys.platform == "win32":
+    f.seek(0); msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+else:
+    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 """], stdout=subprocess.PIPE, text=True)
 holder.stdout.readline()
 add = pack._make(pack._add)

@@ -149,6 +149,33 @@ else:
     sys.stdout.write(filedialog.askopenfilename(**kw) or "")
 """
 
+# macOS: Tk is often unusable in bundled Pythons (Comfy Desktop's can't find init.tcl); osascript is always
+# there. Arguments come in as argv (never pasted into the script), so any path is safe. Cancel returns "".
+_MAC_DIALOG = r"""
+on run argv
+	set multi to (item 1 of argv) is "1"
+	set init to item 2 of argv
+	set exts to items 3 thru -1 of argv
+	activate
+	try
+		if init is "" then
+			set picked to choose file with prompt "Image library" of type exts multiple selections allowed multi
+		else
+			set picked to choose file with prompt "Image library" of type exts default location (POSIX file init) multiple selections allowed multi
+		end if
+	on error number -128
+		return ""
+	end try
+	if class of picked is not list then set picked to {picked}
+	set out to {}
+	repeat with f in picked
+		set end of out to POSIX path of f
+	end repeat
+	set AppleScript's text item delimiters to linefeed
+	return out as text
+end run
+"""
+
 
 def _fake_dialog(queue_file):
     """Automation only (tools/screenshots): when LIBRARY_IMAGE_FAKE_DIALOG names a JSON file holding a
@@ -174,6 +201,13 @@ def _open_file_dialog(initial_dir, multi=False, kinds=("image",)):
         flt = "|".join(f"{label}|{';'.join(p)}" for label, p in filters)
         cmd = ["powershell", "-NoProfile", "-STA", "-NonInteractive", "-Command", _PS_DIALOG]
         flags = subprocess.CREATE_NO_WINDOW
+    elif sys.platform == "darwin":
+        # No "All files" choice on the Mac picker: only supported extensions can be picked.
+        flt = ""
+        init = initial_dir if initial_dir and os.path.isdir(initial_dir) else ""  # choose file fails on a missing folder
+        exts = [e[1:] for k in kinds for e in sorted(KIND_EXTS[k])]
+        cmd = ["osascript", "-e", _MAC_DIALOG, "1" if multi else "0", init, *exts]
+        flags = 0
     else:
         flt = json.dumps(filters)
         cmd = [sys.executable, "-c", _TK_DIALOG]
