@@ -5,8 +5,9 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 for (let i = 0; i < 40 && !window.LiteGraph?.registered_node_types?.TaggedPrompt; i++) await wait(500);
 await m.library.load(true);
 // Its own library, so the results don't depend on yours: two files from ComfyUI's input folder (the
-// same folder the Load Image scenarios use). Set window.__harnessInput first if yours is elsewhere.
-const INPUT_DIR = window.__harnessInput ?? "C:/Users/chabu/Documents/ComfyUI/input/";
+// same folder the Load Image scenarios use). Set window.__harnessInput to that folder first.
+const INPUT_DIR = window.__harnessInput;
+if (!INPUT_DIR) throw new Error('Set window.__harnessInput to your ComfyUI input folder first, e.g. "C:/Users/me/Documents/ComfyUI/input/".');
 const harnessLib = (await m.library.add({ new_library: "Zz_Harness" }, ["Buttons.png", "Biscuit.png"].map((f) => ({ path: INPUT_DIR + f })))).library;
 await wait(2500); // let a freshly loaded page restore its workflow first
 const LG = window.LiteGraph;

@@ -5,10 +5,13 @@ Development only: ComfyUI never loads this folder (it imports `__init__.py` and 
 ## Server tests (offline, no running ComfyUI needed)
 Run with ComfyUI's venv Python; args: <pack dir> <ComfyUI code dir> <scratch dir (deleted)> <input dir with Buttons.png, Giftwood.png, CAPIBARA.jpg, Biscuit.png>
 
-    "C:/Users/chabu/Documents/ComfyUI/.venv/Scripts/python.exe" -I test_harden.py \
-      "D:/ComfyUI_Node_experiments/Image_tagging/comfyui-library-image" \
-      "C:/Users/chabu/AppData/Local/Programs/@comfyorgcomfyui-electron/resources/ComfyUI" \
-      "<some temp dir>" "C:/Users/chabu/Documents/ComfyUI/input"
+    "<ComfyUI base folder>/.venv/Scripts/python.exe" -I test_harden.py \
+      "<this repo>" \
+      "<ComfyUI code folder>" \
+      "<some temp dir>" "<ComfyUI base folder>/input"
+
+For ComfyUI Desktop on Windows the base folder is the one chosen at setup (e.g. `Documents/ComfyUI`) and the
+code folder is `%LOCALAPPDATA%/Programs/@comfyorgcomfyui-electron/resources/ComfyUI`.
 
 Files: test_safety.py (Phase 1), test_phase2b.py, test_perf.py (cache/locking), test_harden.py (local-only, thumbnails),
 test_leftovers.py (paths, names, cross-process lock, thumbnail de-dup, dialog errors),
@@ -23,4 +26,5 @@ extension), then in the browser console:
     const src = await (await fetch("/extensions/comfyui-library-image/_harness.txt")).text();
     await new (Object.getPrototypeOf(async function(){}).constructor)(src.replace(/JSON\.stringify\(results, null, 1\)\s*$/, "return results;"))();
 
+Set `window.__harnessInput` to your ComfyUI input folder (ending in `/`) before running it.
 Results land in window.__harness (takes ~70 s). Delete _harness.txt afterwards. It never queues anything.
