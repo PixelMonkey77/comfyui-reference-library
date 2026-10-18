@@ -16,3 +16,8 @@ First release.
 - An output per tagged file, plus an `images` batch for models with one image input (Nano Banana Pro, …).
 - **Reference Image / Video / Audio** loader nodes.
 - Requires ComfyUI's Nodes 2.0 (Modern Node Design).
+
+Known limitations:
+
+- Local libraries only: files on the computer running ComfyUI. No web or cloud storage links, no Comfy
+  Cloud, and libraries aren't shared between computers yet.

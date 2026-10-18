@@ -3,8 +3,8 @@
 A reference library for ComfyUI. Keep your characters, places, props, clips and sounds in **named
 libraries**, then type **`@name`** in a **Reference Prompt** and they're wired into the model when you
 queue: **Nano Banana**, **Seedream**, **GPT Image**, **FLUX 3**, **Seedance**, **MiniMax H3**,
-**Qwen Image**, … (see [Supported model nodes](#supported-model-nodes)). Files stay where they are on
-disk: no copying into ComfyUI's `input` folder.
+**Qwen Image**, … (see [Supported model nodes](#supported-model-nodes)). Files stay where they are on your
+disk ([local libraries only](#libraries-in-detail), for now): no copying into ComfyUI's `input` folder.
 
 > **Requires Nodes 2.0.** Turn on **Settings → Comfy → Nodes 2.0 → Modern Node Design (Nodes 2.0)**.
 > The classic canvas nodes aren't supported. See [Install](#install).
@@ -295,6 +295,10 @@ IP-Adapter, … An output that is wired to something stays even if its tag is re
 
 ## Libraries in detail
 
+- **Local libraries only (for now).** A library points to files on the disk of the computer running
+  ComfyUI. Web links, cloud storage links (Google Drive, Dropbox, …) and Comfy Cloud aren't supported.
+  Libraries also aren't shared: a workflow opened on another computer finds its tags only if that
+  computer has a library with the same names. Sharing libraries is planned.
 - **Several libraries.** A plain `@Biscuit` means the first enabled library that has it;
   `@Library_02/Biscuit` names the library (typing `@Library_02/` in the list shows only that library).
 - **Per node:** switch libraries on or off in each node's **Libraries** menu, which also renames and
