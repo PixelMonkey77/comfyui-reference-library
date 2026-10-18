@@ -6,6 +6,9 @@ node wires them into model nodes with growing media inputs (**Nano Banana**, **S
 [Supported model nodes](#supported-model-nodes)) when you queue. Files stay where they are on disk:
 no copying into ComfyUI's `input` folder.
 
+> **Requires Nodes 2.0.** Turn on **Settings → Comfy → Nodes 2.0 → Modern Node Design (Nodes 2.0)**.
+> The classic canvas nodes aren't supported. See [Install](#install).
+
 ## No image wires
 
 **You don't connect any images to the model node.** Usually every reference image needs its own Load
@@ -323,6 +326,10 @@ then on paths in that folder work.
   the loader nodes read, and send to an API, any picture on your disk.
 
 ## Install
+
+**Requirement: Nodes 2.0.** The Tagged Prompt's thumbnails, `@` list, tag colors and dialogs are built
+for ComfyUI's modern node design. Turn it on in **Settings → Comfy → Nodes 2.0 → Modern Node Design
+(Nodes 2.0)**. With the classic canvas nodes the pack doesn't work.
 
 ComfyUI loads custom nodes from `ComfyUI/custom_nodes/`. For ComfyUI Desktop that folder is inside the
 base folder you chose at setup (e.g. `Documents\ComfyUI\custom_nodes`); for the portable build it is
