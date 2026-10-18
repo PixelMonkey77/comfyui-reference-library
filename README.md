@@ -309,8 +309,8 @@ IP-Adapter, … An output that is wired to something stays even if its tag is re
 - **Names** use letters, digits, `_` and `-` (other characters become `_`), are unique within a
   library, and are case-insensitive.
 - **Storage:** `ComfyUI/user/default/library_image/library.json`, with a `.bak` of the previous
-  version (a damaged file is set aside and the backup restored). Thumbnails are cached next to it in
-  `thumbs/`.
+  version (a damaged file is set aside and the backup restored). Thumbnails are cached inside the pack's
+  own folder (`.cache/thumbs`) and rebuilt when needed.
 
 ## Reference Image / Video / Audio nodes
 
@@ -353,8 +353,14 @@ git clone https://github.com/PixelMonkey77/comfyui-reference-library
 
 Other tagging nodes that react to `@` in prompts can conflict with this one.
 
-**Uninstall:** delete `custom_nodes/comfyui-reference-library` and restart ComfyUI. The libraries in
-`user/default/library_image` can be deleted too.
+**Uninstall:** uninstall it in the Extensions panel / ComfyUI Manager, or delete
+`custom_nodes/comfyui-reference-library`, and restart ComfyUI. That removes the pack and its thumbnail
+cache.
+
+Your libraries are kept on purpose, so reinstalling or updating never loses them: a few small files in
+`ComfyUI/user/default/library_image/` (`library.json`, its `.bak` backup and an empty `.lock` file). Delete
+that folder too for a completely clean uninstall. Your images, videos and audio files are never touched:
+libraries only point to them.
 
 ## Development
 

@@ -17,6 +17,7 @@ sys.modules["folder_paths"] = fp
 spec = importlib.util.spec_from_file_location("pack", os.path.join(PACK, "__init__.py"))
 pack = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pack)
+pack._CACHE_DIR = os.path.join(SCRATCH, "cache")  # not the repo's own .cache
 from PIL import Image
 ok = lambda c: "OK " if c else "FAIL"
 img = lambda n: os.path.join(INPUT, n)
@@ -90,4 +91,14 @@ except PermissionError:
     pass
 pack.os.replace = real
 print(ok(time.perf_counter() - t < 1.5), f"5. a locked file gives up after {time.perf_counter() - t:.2f} s")
+# 6. caches live in the pack's folder (gone with an uninstall); the old user-folder thumbs/ is removed once
+print(ok(os.path.dirname(pack._thumb_dir()) == pack._CACHE_DIR), "6a. thumbnails go to the cache folder:", pack._thumb_dir())
+old = os.path.join(SCRATCH, "default", "library_image", "thumbs")
+os.makedirs(old, exist_ok=True); open(os.path.join(old, "a.webp"), "wb").close()
+pack._remove_old_thumb_cache()
+print(ok(not os.path.exists(old) and os.path.exists(pack._library_file())), "6b. old thumbs/ removed, library.json kept")
+os.makedirs(old, exist_ok=True); open(os.path.join(old, "mine.txt"), "w").close()
+pack._remove_old_thumb_cache()
+print(ok(os.path.exists(os.path.join(old, "mine.txt"))), "6c. a thumbs/ folder holding other files is left alone")
+
 shutil.rmtree(SCRATCH, ignore_errors=True)

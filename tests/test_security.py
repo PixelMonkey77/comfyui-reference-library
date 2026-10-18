@@ -21,6 +21,7 @@ sys.modules["folder_paths"] = fp
 spec = importlib.util.spec_from_file_location("pack", os.path.join(PACK, "__init__.py"))
 pack = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(pack)
+pack._CACHE_DIR = os.path.join(SCRATCH, "cache")  # not the repo's own .cache
 from PIL import Image
 ok = lambda c: "OK " if c else "FAIL"
 img = lambda n: os.path.join(INPUT, n)

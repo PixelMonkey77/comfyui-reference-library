@@ -4,6 +4,12 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
+## 0.1.3
+
+- Clean uninstall: the thumbnail cache moved into the pack's own folder (`.cache/thumbs`), so uninstalling
+  removes it. The old cache in `user/default/library_image/thumbs` is deleted once on start. Only your
+  libraries (`library.json` and its backup) stay, on purpose; the README explains how to remove them too.
+
 ## 0.1.2
 
 - Node ids match the new name: `ReferencePrompt`, `ReferenceImage`, `ReferenceVideo`, `ReferenceAudio`, in the

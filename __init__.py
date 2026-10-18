@@ -960,8 +960,28 @@ _MASTER = 512  # one master thumbnail per file is kept on disk; smaller sizes ar
 _THUMB_DISK_MAX = 3000
 
 
+# Caches live inside the pack's own folder, so uninstalling the pack (which just deletes that folder)
+# leaves nothing behind. Only the libraries themselves (library.json) are kept in the user folder.
+_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
+
+
 def _thumb_dir():
-    return os.path.join(folder_paths.get_user_directory(), "default", "library_image", "thumbs")
+    return os.path.join(_CACHE_DIR, "thumbs")
+
+
+def _remove_old_thumb_cache():
+    """Versions up to 0.1.2 kept the thumbnail cache in user/default/library_image/thumbs: remove it once.
+    Only that folder, and only if it holds nothing but cache files."""
+    old = os.path.join(folder_paths.get_user_directory(), "default", "library_image", "thumbs")
+    try:
+        names = os.listdir(old)
+    except OSError:
+        return
+    if all(n.endswith((".webp", ".tmp")) for n in names):
+        shutil.rmtree(old, ignore_errors=True)
+
+
+_remove_old_thumb_cache()
 
 
 _MASTER_LOCKS = {}  # thumbnail key -> lock: simultaneous requests for a new file make it once
