@@ -10,7 +10,7 @@ import { bindPrompt } from "./tp_bind.js";
 import { installInkListeners } from "./tp_hover.js";
 import { inks } from "./tp_ink.js";
 import { syncInputs } from "./tp_inputs.js";
-import { enabledLibs, NODE_TYPE, syncClaims } from "./tp_model.js";
+import { enabledLibs, isTpType, syncClaims } from "./tp_model.js";
 import { restoreTags, snapshotTags } from "./tp_pins.js";
 import { installEditorListeners, popup } from "./tp_popup.js";
 import {
@@ -23,7 +23,7 @@ app.registerExtension({
   name: "LibraryImage.TaggedPrompt",
 
   async beforeRegisterNodeDef(nodeType, nodeData) {
-    if (nodeData.name !== NODE_TYPE) return;
+    if (!isTpType(nodeData.name)) return;
 
     const onNodeCreated = nodeType.prototype.onNodeCreated;
     nodeType.prototype.onNodeCreated = function () {

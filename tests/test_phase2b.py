@@ -102,7 +102,7 @@ thumb = Image.open(io.BytesIO(pack._make_thumb(g16, 64, "image"))).convert("L")
 arr = np.array(thumb)
 print(ok(arr.min() < 20 and arr.max() > 235 and 100 < arr.mean() < 155), "6. 16-bit thumb range:", arr.min(), arr.max(), round(arr.mean()))
 pack._trust_folders([g16])  # loader nodes only read trusted folders
-img_t, _ = pack.LibraryImage().load(g16)
+img_t, _ = pack.ReferenceImage().load(g16)
 print(ok(abs(float(img_t.mean()) - arr.mean() / 255) < 0.05), "6b. loader agrees:", round(float(img_t.mean()), 3))
 
 # 7. one dialog at a time

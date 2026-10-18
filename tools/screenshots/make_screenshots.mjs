@@ -96,7 +96,7 @@ async function startComfy(base, fake) {
   for (let i = 0; i < 240; i++) {
     if (proc.exitCode != null) throw new Error(`ComfyUI exited (${proc.exitCode}); see ${path.join(base, "comfy.log")}`);
     try {
-      const r = await fetch(`http://127.0.0.1:${PORT}/object_info/TaggedPrompt`);
+      const r = await fetch(`http://127.0.0.1:${PORT}/object_info/ReferencePrompt`);
       if (r.ok && Object.keys(await r.json()).length) return proc;
     } catch { /* not up yet */ }
     await sleep(500);
@@ -290,7 +290,7 @@ async function setupPage() {
     }
     const app = window.app;
     app.graph.clear();
-    const node = window.LiteGraph.createNode("TaggedPrompt");
+    const node = window.LiteGraph.createNode("ReferencePrompt");
     app.graph.add(node);
     node.pos = [0, 0];
     node.setSize([560, 470]);

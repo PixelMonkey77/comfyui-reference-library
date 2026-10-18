@@ -4,7 +4,7 @@ const { app } = await import("/scripts/app.js");
 const PACK = `/extensions/${window.__harnessPack ?? "comfyui-reference-library"}`;
 const m = await import(`${PACK}/common.js`);
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-for (let i = 0; i < 40 && !window.LiteGraph?.registered_node_types?.TaggedPrompt; i++) await wait(500);
+for (let i = 0; i < 40 && !window.LiteGraph?.registered_node_types?.ReferencePrompt; i++) await wait(500);
 await m.library.load(true);
 // Its own library, so the results don't depend on yours: two files from ComfyUI's input folder (the
 // same folder the Load Image scenarios use). Set window.__harnessInput to that folder first.
@@ -30,11 +30,11 @@ async function api() {
     if (problems) return [`ERROR ${problems.join(" / ")}`];
     const res = [];
     for (const [id, n] of Object.entries(o)) {
-      const imgs = Object.entries(n.inputs).filter(([k, v]) => /image_\d+$/.test(k) && Array.isArray(v) && n.class_type !== "TaggedPrompt");
+      const imgs = Object.entries(n.inputs).filter(([k, v]) => /image_\d+$/.test(k) && Array.isArray(v) && !/^(ReferencePrompt|TaggedPrompt)$/.test(n.class_type));
       if (!imgs.length && !/Nano|Seedance/i.test(n.class_type)) continue;
       const pv = n.inputs.prompt;
       const flat = (v, d = 0) => (typeof v === "string" ? v : Array.isArray(v) && d < 8 && o[v[0]]
-        ? `${o[v[0]].class_type}(${Object.values(o[v[0]].inputs ?? {}).filter((x) => typeof x === "string" || (Array.isArray(x) && !/Load|Library/.test(o[x[0]]?.class_type ?? ""))).map((x) => flat(x, d + 1)).join("|")})` : "");
+        ? `${o[v[0]].class_type}(${Object.values(o[v[0]].inputs ?? {}).filter((x) => typeof x === "string" || (Array.isArray(x) && !/Load|Library|Reference(Image|Video|Audio)$/.test(o[x[0]]?.class_type ?? ""))).map((x) => flat(x, d + 1)).join("|")})` : "");
       const text = flat(pv);
       res.push(`${n._meta?.title ?? n.class_type} «${text}» ${imgs.sort().map(([k, v]) => `${k.split(".").pop()}←${describe(o, v[0])}`).join(", ")}`);
     }
@@ -69,7 +69,7 @@ async function scenario(name, build) {
 
 // 1. library tags + First and Last extras
 await scenario("lib+extras", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
+  const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
   await wait(400);
   m.setWidget(tp, "text", "@Biscuit with @Buttons and @Giftwood and @CAPIBARA");
   const a = loadImg("Giftwood.png", -400, 2000), b = loadImg("CAPIBARA.jpg", -400, 2300);
@@ -80,7 +80,7 @@ await scenario("lib+extras", async () => {
 });
 // 2. hand-wired Load Image on the target + library tag of another name
 await scenario("hand-wired", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
+  const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
   await wait(400);
   m.setWidget(tp, "text", "@Giftwood next to @Buttons");
   const a = loadImg("Giftwood.png", 300, 2400); a.connect(0, t, idx(t, "model.images.image_1"));
@@ -89,7 +89,7 @@ await scenario("hand-wired", async () => {
 });
 // 3. @name output wired by hand into the target
 await scenario("output-wired", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
+  const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
   await wait(400);
   m.setWidget(tp, "text", "@Buttons and @Biscuit");
   await settle();
@@ -100,7 +100,7 @@ await scenario("output-wired", async () => {
 });
 // 4. one prompt, two targets
 await scenario("two-targets", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t1 = add("GeminiNanoBanana2V2", 600, 2000); const t2 = add("GeminiNanoBanana2V2", 600, 2600);
+  const tp = add("ReferencePrompt", 0, 2000); const t1 = add("GeminiNanoBanana2V2", 600, 2000); const t2 = add("GeminiNanoBanana2V2", 600, 2600);
   await wait(400);
   m.setWidget(tp, "text", "@Buttons and @Biscuit");
   const a = loadImg("Giftwood.png", 300, 2600); a.connect(0, t2, idx(t2, "model.images.image_1"));
@@ -110,7 +110,7 @@ await scenario("two-targets", async () => {
 });
 // 5. errors: unknown tag, library off
 await scenario("errors", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
+  const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
   await wait(400);
   m.setWidget(tp, "text", "@Buttons and @NoSuchThing_xyz");
   tp.connect(0, t, idx(t, "prompt"));
@@ -118,7 +118,7 @@ await scenario("errors", async () => {
 });
 // 6. through a string node (R2-9)
 await scenario("via-concat", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 900, 2000);
+  const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 900, 2000);
   const c = add("StringConcatenate", 450, 2000);
   await wait(400);
   m.setWidget(tp, "text", "@Buttons and @Giftwood");
@@ -131,7 +131,7 @@ await scenario("via-concat", async () => {
 
 // 7. one chain read by two targets (cloned per target)
 await scenario("concat-shared", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t1 = add("GeminiNanoBanana2V2", 900, 2000); const t2 = add("GeminiNanoBanana2V2", 900, 2600);
+  const tp = add("ReferencePrompt", 0, 2000); const t1 = add("GeminiNanoBanana2V2", 900, 2000); const t2 = add("GeminiNanoBanana2V2", 900, 2600);
   const c = add("StringConcatenate", 450, 2000);
   await wait(400);
   m.setWidget(tp, "text", "@Buttons and @Biscuit");
@@ -153,7 +153,7 @@ await scenario("typed-in-concat", async () => {
 });
 // 9. muted plugged-in file: not used, its tag shows unplugged
 await scenario("muted-extra", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
+  const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
   await wait(400);
   const a = loadImg("Giftwood.png", -400, 2000); a.connect(0, tp, idx(tp, "image_1"));
   await settle();
@@ -166,7 +166,7 @@ await scenario("muted-extra", async () => {
 // 10. subgraph: Reference Prompt inside, its text leaves through the subgraph output to a target outside;
 //     a Load Image outside feeds an extra input through the subgraph input
 await scenario("subgraph-boundary", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 900, 2000);
+  const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 900, 2000);
   await wait(400);
   m.setWidget(tp, "text", "@Buttons and @Giftwood");
   const a = loadImg("Giftwood.png", -500, 2000);
@@ -178,14 +178,14 @@ await scenario("subgraph-boundary", async () => {
   const sg = res?.node ?? res;
   made.push([G, sg]);
   await settle();
-  const inner = sg.subgraph._nodes.find((n) => n.type === "TaggedPrompt");
+  const inner = sg.subgraph._nodes.find((n) => /^(ReferencePrompt|TaggedPrompt)$/.test(n.type));
   window.__sgInner = inner;
   return { tps: [] , extra: { inner } };
 });
 
 // 11. user's Test 01: plugging a same-name file qualifies the library tag; unplugged, its tag is red
 await scenario("claims-test01", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
+  const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
   await wait(400);
   m.setWidget(tp, "text", "a photo of @Biscuit");
   tp.connect(0, t, idx(t, "prompt"));
@@ -199,7 +199,7 @@ await scenario("claims-test01", async () => {
 });
 // 12. user's Test 02: two Load Images of the same file; unplug the first
 await scenario("claims-test02", async () => {
-  const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
+  const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
   await wait(400);
   tp.connect(0, t, idx(t, "prompt"));
   const a = loadImg("Biscuit.png", -400, 2000), b = loadImg("Biscuit.png", -400, 2350);
@@ -208,6 +208,18 @@ await scenario("claims-test02", async () => {
   b.connect(0, tp, idx(tp, "image_2")); await settle();
   m.setWidget(tp, "text", m.getWidget(tp, "text").value + " and @Biscuit_2"); await settle();
   tp.disconnectInput(idx(tp, "image_1"));
+  return { tps: [tp] };
+});
+
+// 14. a workflow saved before the rename: old ids (TaggedPrompt, LibraryImage) still tag and bind
+await scenario("old-ids", async () => {
+  const tp = add("TaggedPrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
+  await wait(400);
+  const li = add("LibraryImage", -400, 2000);
+  m.setWidget(li, "image_path", INPUT_DIR + "Giftwood.png"); m.setWidget(li, "name", "OldGift");
+  li.connect(0, tp, idx(tp, "image_1")); await wait(300);
+  m.setWidget(tp, "text", "@Biscuit meets @OldGift");
+  tp.connect(0, t, idx(t, "prompt"));
   return { tps: [tp] };
 });
 

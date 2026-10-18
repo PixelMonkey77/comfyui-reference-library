@@ -3,7 +3,7 @@
 import { assetKind, isPromptKey, KINDS, library, LOADERS, mediaPorts, mentionRe, mentionsIn, portNum, tagKey } from "./common.js";
 import { nodeForExecId, outputTypeOf } from "./compat.js";
 import {
-  apiSourceName, autogrowMax, claimsOf, enabledLibs, EXTRA_RE, extraOutputKey, isBatchOutput, isBefore, NODE_TYPE,
+  apiSourceName, autogrowMax, claimsOf, enabledLibs, EXTRA_RE, extraOutputKey, isBatchOutput, isBefore, isTpType,
   outputAsset, unpluggedText,
 } from "./tp_model.js";
 import { claimSpec, placeTags } from "./tp_plan.js";
@@ -19,9 +19,9 @@ function promptChain(output, link) {
     const id = String(v[0]);
     const n = output[id];
     if (!n || chain.includes(id)) return;
-    if (n.class_type !== NODE_TYPE && outputTypeOf(n.class_type, v[1]) !== "STRING") return;
+    if (!isTpType(n.class_type) && outputTypeOf(n.class_type, v[1]) !== "STRING") return;
     chain.push(id);
-    if (n.class_type === NODE_TYPE) return; // its text is the end of the chain
+    if (isTpType(n.class_type)) return; // its text is the end of the chain
     for (const x of Object.values(n.inputs ?? {})) walk(x, depth + 1);
   };
   walk(link, 0);
@@ -74,7 +74,7 @@ export function bindPrompt(output) {
   const fileReaders = new Map(); // Reference Prompt id -> ids of the nodes reading those outputs
   const batchReaders = new Map(); // Reference Prompt id -> [[consumer, input key]] reading "images"
   for (const [id, node] of Object.entries(output)) {
-    if (node.class_type !== NODE_TYPE) continue;
+    if (!isTpType(node.class_type)) continue;
     const uiNode = nodeForExecId(id);
     for (const [consumerId, consumer] of Object.entries(output)) {
       for (const [k, v] of Object.entries(consumer.inputs ?? {})) {
@@ -131,7 +131,7 @@ export function bindPrompt(output) {
       const v = inputs[key];
       const chain = Array.isArray(v) ? promptChain(output, v) : [];
       const texts = typeof v === "string" ? [v] : chain.flatMap((c) => stringsOf(output[c]));
-      return { key, v, chain, texts, tps: chain.filter((c) => output[c].class_type === NODE_TYPE) };
+      return { key, v, chain, texts, tps: chain.filter((c) => isTpType(output[c].class_type)) };
     });
     const pick = candidates.find((c) => c.texts.some((t) => mentionsIn(t).length)) ?? candidates.find((c) => c.tps.length);
     if (!pick) continue;
@@ -216,7 +216,7 @@ export function bindPrompt(output) {
         }
         rewriteNode(clone);
         output[cid] = clone;
-        if (clone.class_type === NODE_TYPE) bound.add(cid);
+        if (isTpType(clone.class_type)) bound.add(cid);
         cloned.add(c);
       }
       inputs[pick.key] = [copy.get(pick.chain[0]), pick.v[1]];
@@ -263,7 +263,7 @@ export function bindPrompt(output) {
     }
     const batchId = newId("libbatch");
     output[batchId] = {
-      class_type: "LibraryImageBatch",
+      class_type: "ReferenceImagesBatch",
       inputs: { mode: "pad", ...Object.fromEntries(items.map((it, i) => [`image_${i + 1}`, it.link])) },
       _meta: { title: `${tpUi.title}: images` },
     };
@@ -272,7 +272,7 @@ export function bindPrompt(output) {
 
   // The server-side Reference Prompt has only "text": its extra inputs were moved onto the targets above.
   for (const node of Object.values(output)) {
-    if (node.class_type !== NODE_TYPE) continue;
+    if (!isTpType(node.class_type)) continue;
     for (const k of Object.keys(node.inputs ?? {})) if (EXTRA_RE.test(k)) delete node.inputs[k];
   }
   // Originals that every target now reads through a copy are dead weight in the API prompt (a chain
@@ -289,7 +289,7 @@ export function bindPrompt(output) {
   // A Reference Prompt with @tags whose text reaches no node it can fill would send the raw "@Alex" to
   // a model that gets no images (LTX 2.5, an open-model text encoder without image inputs, ...).
   for (const [id, node] of Object.entries(output)) {
-    if (node.class_type !== NODE_TYPE || bound.has(id)) continue;
+    if (!isTpType(node.class_type) || bound.has(id)) continue;
     const tags = Object.values(node.inputs ?? {}).filter((v) => typeof v === "string").flatMap(mentionsIn);
     if (!tags.length) continue;
     const title = nodeForExecId(id)?.title ?? "Reference Prompt";
@@ -301,11 +301,11 @@ export function bindPrompt(output) {
   return errors;
 }
 
-const BATCH_MAX = 64; // LibraryImageBatch's inputs
+const BATCH_MAX = 64; // ReferenceImagesBatch's inputs
 
 /** Nodes whose prompt input gets this Reference Prompt's text (directly or through string nodes). */
 function textReaders(output, tpId) {
-  return Object.entries(output).filter(([nid, n]) => n.class_type !== NODE_TYPE && Object.entries(n.inputs ?? {})
+  return Object.entries(output).filter(([nid, n]) => !isTpType(n.class_type) && Object.entries(n.inputs ?? {})
     .some(([k, v]) => isPromptKey(k) && Array.isArray(v) && promptChain(output, v).includes(String(tpId)))).map(([nid]) => nid);
 }
 

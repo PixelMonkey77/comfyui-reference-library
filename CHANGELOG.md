@@ -4,6 +4,12 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
+## 0.1.2
+
+- Node ids match the new name: `ReferencePrompt`, `ReferenceImage`, `ReferenceVideo`, `ReferenceAudio`, in the
+  node search category **Reference Library**. Workflows saved with the old ids (`TaggedPrompt`,
+  `LibraryImage`, …) still load and run; those ids are just hidden from the search.
+
 ## 0.1.1
 
 - Registry icon and banner.

@@ -72,30 +72,30 @@ print(ok(r.status == 403), "2g. library list via DNS rebinding refused:", r.stat
 
 # 3. trusted folders + validation leaks
 os.environ["FAKE_API_KEY"] = "sk-SECRET-123"
-v = pack.LibraryImage.VALIDATE_INPUTS(r"C:\%FAKE_API_KEY%\x.png")
+v = pack.ReferenceImage.VALIDATE_INPUTS(r"C:\%FAKE_API_KEY%\x.png")
 print(ok("sk-SECRET" not in str(v)), "3a. no env-var leak:", v[:110])
-a = pack.LibraryImage.VALIDATE_INPUTS(r"C:\Windows\win.ini")
-b = pack.LibraryImage.VALIDATE_INPUTS(r"C:\Windows\nope.ini")
+a = pack.ReferenceImage.VALIDATE_INPUTS(r"C:\Windows\win.ini")
+b = pack.ReferenceImage.VALIDATE_INPUTS(r"C:\Windows\nope.ini")
 print(ok(a.replace("win.ini", "X") == b.replace("nope.ini", "X") and "not an image" in a), "3b. wrong type: same answer whether it exists:", a)
 secret_dir = os.path.join(SCRATCH, "private"); os.makedirs(secret_dir)
 Image.new("RGB", (8, 8), "red").save(os.path.join(secret_dir, "me.png"))
-a = pack.LibraryImage.VALIDATE_INPUTS(os.path.join(secret_dir, "me.png"))
-b = pack.LibraryImage.VALIDATE_INPUTS(os.path.join(secret_dir, "missing.png"))
+a = pack.ReferenceImage.VALIDATE_INPUTS(os.path.join(secret_dir, "me.png"))
+b = pack.ReferenceImage.VALIDATE_INPUTS(os.path.join(secret_dir, "missing.png"))
 print(ok("hasn't been used" in a and a.replace("me.png", "X") == b.replace("missing.png", "X")),
       "3c. untrusted folder: same message for an existing and a missing file:", a[:120])
 try:
-    pack.LibraryImage().load(os.path.join(secret_dir, "me.png")); print("FAIL 3d. loaded an untrusted file")
+    pack.ReferenceImage().load(os.path.join(secret_dir, "me.png")); print("FAIL 3d. loaded an untrusted file")
 except ValueError as e:
     print(ok("hasn't been used" in str(e)), "3d. load() refuses it too")
-print(ok(pack.LibraryImage.VALIDATE_INPUTS(img("Buttons.png")) is True), "3e. folder holding library files is trusted")
+print(ok(pack.ReferenceImage.VALIDATE_INPUTS(img("Buttons.png")) is True), "3e. folder holding library files is trusted")
 pack._trust_folders([os.path.join(secret_dir, "me.png")])
-print(ok(pack.LibraryImage.VALIDATE_INPUTS(os.path.join(secret_dir, "me.png")) is True), "3f. after a pick in that folder: trusted")
-print(ok("file not found" in pack.LibraryImage.VALIDATE_INPUTS(os.path.join(secret_dir, "missing.png"))), "3g. ...and now a missing file says so")
+print(ok(pack.ReferenceImage.VALIDATE_INPUTS(os.path.join(secret_dir, "me.png")) is True), "3f. after a pick in that folder: trusted")
+print(ok("file not found" in pack.ReferenceImage.VALIDATE_INPUTS(os.path.join(secret_dir, "missing.png"))), "3g. ...and now a missing file says so")
 sub = os.path.join(secret_dir, "sub"); os.makedirs(sub); Image.new("RGB", (8, 8)).save(os.path.join(sub, "x.png"))
-print(ok("hasn't been used" in pack.LibraryImage.VALIDATE_INPUTS(os.path.join(sub, "x.png"))), "3h. its subfolders aren't trusted by that")
+print(ok("hasn't been used" in pack.ReferenceImage.VALIDATE_INPUTS(os.path.join(sub, "x.png"))), "3h. its subfolders aren't trusted by that")
 inp = fp.get_input_directory(); os.makedirs(os.path.join(inp, "deep"))
 Image.new("RGB", (8, 8)).save(os.path.join(inp, "deep", "y.png"))
-print(ok(pack.LibraryImage.VALIDATE_INPUTS(os.path.join(inp, "deep", "y.png")) is True), "3i. ComfyUI input folder (and subfolders) trusted")
+print(ok(pack.ReferenceImage.VALIDATE_INPUTS(os.path.join(inp, "deep", "y.png")) is True), "3i. ComfyUI input folder (and subfolders) trusted")
 saved = [os.path.normcase(f) for f in pack._load_library().get("trusted_folders", [])]
 print(ok(os.path.normcase(os.path.abspath(secret_dir)) in saved and os.path.normcase(os.path.abspath(sub)) not in saved), "3j. trusted folders saved in library.json:", pack._load_library().get("trusted_folders"))
 r = asyncio.run(pack._guard(pack._trusted_route, local=True)(Req(query={"path": os.path.join(sub, "x.png")})))

@@ -6,7 +6,12 @@ import {
 import { allGraphs, currentGraph, isMuted, linkById, nodeDefOf, nodesOf, originOf, targetsOf } from "./compat.js";
 import { setNodeText } from "./tp_pins.js";
 
-export const NODE_TYPE = "TaggedPrompt";
+export const NODE_TYPE = "ReferencePrompt";
+// Ids from before the rename to Reference Library (saved workflows use them): the same nodes.
+export const OLD_TYPES = { TaggedPrompt: "ReferencePrompt", LibraryImage: "ReferenceImage", LibraryVideo: "ReferenceVideo", LibraryAudio: "ReferenceAudio" };
+/** A node type (or API class_type) in today's id: old ids mapped to their new one. */
+export const typeId = (t) => OLD_TYPES[t] ?? t;
+export const isTpType = (t) => typeId(t) === NODE_TYPE;
 
 export const MAX_RESULTS = 60;
 
@@ -30,7 +35,7 @@ export function enabledLibs(node) {
 /** Resolves a tag for a node: { status: ok | missing | off | unknown, asset, lib }. */
 export const resolveFor = (node, tok) => library.resolve(tok, node ? enabledLibs(node) : null);
 
-export const isTaggedPrompt = (node) => (node?.comfyClass ?? node?.type) === NODE_TYPE;
+export const isTaggedPrompt = (node) => isTpType(node?.comfyClass ?? node?.type);
 
 /**
  * First downstream node with auto-grow media ports fed by this prompt node. Follows the text through
@@ -68,14 +73,14 @@ const sourceKey = (node, o) => `${o.graph === node.graph ? "" : `${o.graph?.id ?
 // Tag name a wired source node contributes: Library loaders use their name (or file stem),
 // core loaders their file stem. [widget holding the name, widget holding the path]
 const SOURCE_WIDGETS = {
-  LibraryImage: ["name", "image_path"], LibraryVideo: ["name", "path"], LibraryAudio: ["name", "path"],
+  ReferenceImage: ["name", "image_path"], ReferenceVideo: ["name", "path"], ReferenceAudio: ["name", "path"],
   LoadImage: [null, "image"], LoadVideo: [null, "file"], LoadAudio: [null, "audio"],
 };
 
 function uiSourceName(src, slot = 0) {
   // A Reference Prompt's own "@name" outputs carry that asset.
   if (isTaggedPrompt(src)) return slot > 0 ? outputAssetName(src.outputs?.[slot]) : null;
-  const w = SOURCE_WIDGETS[src?.comfyClass ?? src?.type];
+  const w = SOURCE_WIDGETS[typeId(src?.comfyClass ?? src?.type)];
   if (!w) return null;
   return (w[0] && getWidget(src, w[0])?.value) || stem(getWidget(src, w[1])?.value) || null;
 }
@@ -286,8 +291,8 @@ function qualifyLibraryTags(node, keys) {
 /** Preview media for an extra input's source node (core loaders only; files in ComfyUI's input folder). */
 export function extraMedia(extra) {
   const src = extra.src;
-  const type = src?.comfyClass ?? src?.type;
-  if ((type === "LibraryImage" || type === "LibraryVideo" || type === "LibraryAudio") && extra.name) {
+  const type = typeId(src?.comfyClass ?? src?.type);
+  if ((type === "ReferenceImage" || type === "ReferenceVideo" || type === "ReferenceAudio") && extra.name) {
     const asset = library.resolve(extra.name).asset;
     if (asset) return { asset };
   }

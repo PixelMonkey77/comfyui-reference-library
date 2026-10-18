@@ -25,9 +25,9 @@ export const mediaLabel = (portName, kind, n) =>
 
 /** Hidden loader node used for each kind of library asset at queue time. */
 export const LOADERS = {
-  image: { type: "LibraryImage", pathKey: "image_path" },
-  video: { type: "LibraryVideo", pathKey: "path" },
-  audio: { type: "LibraryAudio", pathKey: "path" },
+  image: { type: "ReferenceImage", pathKey: "image_path" },
+  video: { type: "ReferenceVideo", pathKey: "path" },
+  audio: { type: "ReferenceAudio", pathKey: "path" },
 };
 
 export const assetKind = (asset) => asset?.kind ?? "image";

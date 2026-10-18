@@ -5,10 +5,14 @@ import { api } from "../../scripts/api.js";
 import { browseForFile, getWidget, setWidget, stem, tagName, toast } from "./common.js";
 
 const NODES = {
-  LibraryImage: { kind: "image", pathWidget: "image_path", title: "Reference Image" },
-  LibraryVideo: { kind: "video", pathWidget: "path", title: "Reference Video" },
-  LibraryAudio: { kind: "audio", pathWidget: "path", title: "Reference Audio" },
+  ReferenceImage: { kind: "image", pathWidget: "image_path", title: "Reference Image" },
+  ReferenceVideo: { kind: "video", pathWidget: "path", title: "Reference Video" },
+  ReferenceAudio: { kind: "audio", pathWidget: "path", title: "Reference Audio" },
 };
+// Ids from before the rename (saved workflows use them): the same nodes.
+NODES.LibraryImage = NODES.ReferenceImage;
+NODES.LibraryVideo = NODES.ReferenceVideo;
+NODES.LibraryAudio = NODES.ReferenceAudio;
 
 const CSS = `
 .li-trust{box-sizing:border-box;margin:2px 0;padding:6px 8px;border-radius:6px;font:12px/1.35 system-ui,sans-serif;

@@ -1189,7 +1189,7 @@ def _load_check(kind, path):
     return _clean_path(path)
 
 
-class LibraryImage:
+class ReferenceImage:
     """Load an image from any absolute path on disk (not limited to ComfyUI/input)."""
 
     @classmethod
@@ -1210,7 +1210,7 @@ class LibraryImage:
     RETURN_TYPES = ("IMAGE", "MASK")
     RETURN_NAMES = ("image", "mask")
     FUNCTION = "load"
-    CATEGORY = "image/library"
+    CATEGORY = "Reference Library"
 
     def load(self, image_path, name=""):
         path = _load_check("image", image_path)
@@ -1248,7 +1248,7 @@ class LibraryImage:
         return _validate("image", image_path, name)
 
 
-class LibraryVideo:
+class ReferenceVideo:
     """Load a video from any absolute path on disk."""
 
     @classmethod
@@ -1258,7 +1258,7 @@ class LibraryVideo:
     RETURN_TYPES = ("VIDEO",)
     RETURN_NAMES = ("video",)
     FUNCTION = "load"
-    CATEGORY = "image/library"
+    CATEGORY = "Reference Library"
 
     def load(self, path, name=""):
         from comfy_api.latest import InputImpl
@@ -1273,7 +1273,7 @@ class LibraryVideo:
         return _validate("video", path, name)
 
 
-class LibraryAudio:
+class ReferenceAudio:
     """Load an audio file from any absolute path on disk."""
 
     @classmethod
@@ -1283,7 +1283,7 @@ class LibraryAudio:
     RETURN_TYPES = ("AUDIO",)
     RETURN_NAMES = ("audio",)
     FUNCTION = "load"
-    CATEGORY = "image/library"
+    CATEGORY = "Reference Library"
 
     def load(self, path, name=""):
         from comfy_extras.nodes_audio import load as load_audio
@@ -1299,7 +1299,7 @@ class LibraryAudio:
         return _validate("audio", path, name)
 
 
-class TaggedPrompt:
+class ReferencePrompt:
     """Multiline prompt with @tag autocomplete over the shared asset library.
 
     The tagging and wiring happen in the frontend when the prompt is queued;
@@ -1321,13 +1321,13 @@ class TaggedPrompt:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("text",)
     FUNCTION = "run"
-    CATEGORY = "image/library"
+    CATEGORY = "Reference Library"
 
     def run(self, text):
         return (text,)
 
 
-class LibraryImageBatch:
+class ReferenceImagesBatch:
     """Stacks the Reference Prompt's images into one batch (for models with a single `images` input, like
     Nano Banana Pro). Added at queue time for the Reference Prompt's "images" output; never on the canvas.
 
@@ -1349,7 +1349,7 @@ class LibraryImageBatch:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("images",)
     FUNCTION = "batch"
-    CATEGORY = "image/library"
+    CATEGORY = "Reference Library"
 
     def batch(self, mode="pad", **images):
         import comfy.utils
@@ -1382,7 +1382,34 @@ class LibraryImageBatch:
         return (torch.cat(out, dim=0).clamp(0, 1),)
 
 
+# Ids before the rename to Reference Library (saved workflows use them): same nodes, hidden from the
+# node search (DEPRECATED), so old workflows load and run unchanged.
+class LibraryImage(ReferenceImage):
+    DEPRECATED = True
+
+
+class LibraryVideo(ReferenceVideo):
+    DEPRECATED = True
+
+
+class LibraryAudio(ReferenceAudio):
+    DEPRECATED = True
+
+
+class TaggedPrompt(ReferencePrompt):
+    DEPRECATED = True
+
+
+class LibraryImageBatch(ReferenceImagesBatch):
+    pass
+
+
 NODE_CLASS_MAPPINGS = {
+    "ReferenceImage": ReferenceImage,
+    "ReferenceVideo": ReferenceVideo,
+    "ReferenceAudio": ReferenceAudio,
+    "ReferencePrompt": ReferencePrompt,
+    "ReferenceImagesBatch": ReferenceImagesBatch,
     "LibraryImage": LibraryImage,
     "LibraryVideo": LibraryVideo,
     "LibraryAudio": LibraryAudio,
@@ -1390,11 +1417,16 @@ NODE_CLASS_MAPPINGS = {
     "LibraryImageBatch": LibraryImageBatch,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "LibraryImage": "Reference Image",
-    "LibraryVideo": "Reference Video",
-    "LibraryAudio": "Reference Audio",
-    "TaggedPrompt": "Reference Prompt",
-    "LibraryImageBatch": "Reference Images Batch (internal)",
+    "ReferenceImage": "Reference Image",
+    "ReferenceVideo": "Reference Video",
+    "ReferenceAudio": "Reference Audio",
+    "ReferencePrompt": "Reference Prompt",
+    "ReferenceImagesBatch": "Reference Images Batch (internal)",
+    "LibraryImage": "Reference Image (old id)",
+    "LibraryVideo": "Reference Video (old id)",
+    "LibraryAudio": "Reference Audio (old id)",
+    "TaggedPrompt": "Reference Prompt (old id)",
+    "LibraryImageBatch": "Reference Images Batch (old id)",
 }
 WEB_DIRECTORY = "./web"
 
