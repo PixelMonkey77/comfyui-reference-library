@@ -18,7 +18,7 @@ test_leftovers.py (paths, names, cross-process lock, thumbnail de-dup, dialog er
 test_security.py (request trust, trusted folders, no validation leaks, /file hardening).
 
 ## Frontend regression harness (harness.js)
-14 scenarios (incl. a workflow with the ids from before the rename): strip/ink on the canvas + the API prompt binding (incl. claims Test 01/02, string chains,
+13 scenarios (incl. a workflow with the ids from before the rename): strip/ink on the canvas + the API prompt binding (incl. claims Test 01/02, string chains,
 subgraph boundary, muted files). Needs a running ComfyUI, the library assets above, and the Nano Banana 2.1 node.
 To run: copy harness.js to custom_nodes/comfyui-reference-library/web/_harness.txt (a .js there would load as an
 extension), then in the browser console:
