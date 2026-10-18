@@ -1,7 +1,7 @@
 [project]
 name = "comfyui-reference-library"
 description = "A reference library for ComfyUI: keep reference images, videos and audio in named libraries (files stay in place), type @name in a Reference Prompt and they are wired into model nodes (Nano Banana, Seedance, ...) when you queue."
-version = "0.1.0"
+version = "0.1.1"
 license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"
@@ -14,5 +14,6 @@ Repository = "https://github.com/PixelMonkey77/comfyui-reference-library"
 [tool.comfy]
 PublisherId = "pixelmonkey77"
 DisplayName = "Reference Library"
-Icon = ""
+Icon = "https://raw.githubusercontent.com/PixelMonkey77/comfyui-reference-library/main/docs/images/registry_icon.png"
+Banner = "https://raw.githubusercontent.com/PixelMonkey77/comfyui-reference-library/main/docs/images/registry_banner.png"
 includes = []

@@ -4,6 +4,10 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
+## 0.1.1
+
+- Registry icon and banner.
+
 ## 0.1.0
 
 First release.

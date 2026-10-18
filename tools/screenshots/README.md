@@ -42,3 +42,6 @@ Each step in `walkthrough()` clicks, types, then calls
 `from` element's edge (default: the target) and an arrow points at the target. Targets are
 `{ sel, text?, index? }`, where `{node}` in a selector stands for the Reference Prompt node; `bend`
 (pixels, negative = the other way) curves the arrow around content.
+
+`make_registry_art.py` draws the Comfy Registry banner and icon (`docs/images/registry_*.png`, linked from
+`pyproject.toml`) from the same demo files: `python tools/screenshots/make_registry_art.py` (needs Pillow).
