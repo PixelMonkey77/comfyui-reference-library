@@ -298,7 +298,23 @@ export function extraMedia(extra) {
   }
   const file = { LoadImage: "image", LoadVideo: "file", LoadAudio: "audio" }[type];
   const value = file && getWidget(src, file)?.value;
-  return value ? { url: viewUrl(value), file: value } : {};
+  return value ? { url: nodePreviewUrl(src, value) ?? viewUrl(value), file: value } : {};
+}
+
+/** The image a Load Image node shows itself: its URL carries a cache-buster ("&rand="), so a file
+ * replaced under the same name (re-upload, mask editor, paste) shows its new content. Only when it
+ * belongs to the node's current file; otherwise null. */
+function nodePreviewUrl(src, value) {
+  const url = src?.imgs?.[0]?.src;
+  if (!url) return null;
+  try {
+    const q = new URL(url, location.href).searchParams;
+    const name = String(value).replace(/\s*\[(input|output|temp)\]$/, "");
+    const parts = name.split("/");
+    return q.get("filename") === parts.pop() && (q.get("subfolder") ?? "") === parts.join("/") ? url : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Hover/chip text for a tag whose plugged-in file was unplugged. */

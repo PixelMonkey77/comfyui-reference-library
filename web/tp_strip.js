@@ -51,7 +51,7 @@ export function refreshStrip(node) {
   const { extras } = plan;
   const uses = mentionsIn(getWidget(node, "text")?.value).map(tagKey);
   const sig = JSON.stringify([rows.map((r) => [r.tok, r.label, r.state, r.status, r.unsupported, r.asset?.id, r.asset?.mtime, r.asset?.name]),
-    extras.map((x) => [x.input, x.tag, x.before, x.label, x.unsupported, x.src?.id, extraMedia(x).file]),
+    extras.map((x) => [x.input, x.tag, x.before, x.label, x.unsupported, x.src?.id, extraMedia(x).url]),
     library.assets.length, library.libraries.map((l) => l.name), uses, typing]);
   if (sig === s.sig) return;
   s.sig = sig;
