@@ -4,6 +4,13 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
+## 0.1.4
+
+- Undo / redo no longer freeze the Reference Prompt: its thumbnails and header stayed in the old state, and
+  their buttons acted on the replaced node.
+- A plugged-in Load Image's thumbnail follows the node's own preview, so a file replaced under the same name
+  shows its new content.
+
 ## 0.1.3
 
 - Clean uninstall: the thumbnail cache moved into the pack's own folder (`.cache/thumbs`), so uninstalling

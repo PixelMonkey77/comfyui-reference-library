@@ -1,5 +1,6 @@
 // Reference Prompt: the strip of tagged assets, the header, and the @name outputs.
 import { assetKind, getWidget, KINDS, library, mentionsIn, splitTag, tagKey } from "./common.js";
+import { currentGraph } from "./compat.js";
 import { openAddDialog, toggleLibraryPanel } from "./dialogs.js";
 import { highlightTag, jumpToTag, renderInk, sweepInks } from "./tp_ink.js";
 import { syncInputs } from "./tp_inputs.js";
@@ -39,6 +40,7 @@ export function scheduleStrip(node) {
 export function refreshStrip(node) {
   const s = strips.get(node);
   if (!s || !node.graph) return;
+  if (!s.el.isConnected || !headers.get(node)?.el.isConnected) mountOwnElements(node);
   syncClaims(node);
   refreshHeader(node);
   syncInputs(node);
@@ -340,6 +342,23 @@ function keyboardChip(chip) {
     chip.click();
   });
   return chip;
+}
+
+/**
+ * Puts this node's own header and strip on screen. Undo / redo replace every node with a new one of the
+ * same id, but the frontend keeps showing the old node's elements (its WidgetDOM mounts an element only
+ * once): the strip would freeze and its buttons act on the removed node. Swap them in the way the
+ * frontend mounts them (replaceChildren on the widget's container).
+ */
+function mountOwnElements(node) {
+  if (node.graph !== currentGraph()) return;
+  const box = document.querySelector(`.lg-node[data-node-id="${node.id}"]`);
+  if (!box) return; // not rendered (yet): the frontend mounts the current elements itself
+  for (const [name, cls] of [["tagged_header", "tp-header"], ["tagged_images", "tp-strip"]]) {
+    const el = node.widgets?.find((w) => w.name === name)?.element;
+    if (!el || el.isConnected) continue;
+    box.querySelector(`.${cls}`)?.parentElement?.replaceChildren(el);
+  }
 }
 
 export function refreshAllStrips() {
