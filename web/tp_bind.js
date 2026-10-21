@@ -6,7 +6,7 @@ import {
   apiSourceName, autogrowMax, claimsOf, enabledLibs, EXTRA_RE, extraOutputKey, isBatchOutput, isBefore, isTpType,
   outputAsset, unpluggedText,
 } from "./tp_model.js";
-import { claimSpec, placeTags } from "./tp_plan.js";
+import { claimSpec, placeTags, planFor, staleReason, staleText } from "./tp_plan.js";
 
 /**
  * The nodes that produce a prompt input's text: the source node, and further up every node feeding
@@ -76,6 +76,7 @@ export function bindPrompt(output) {
   for (const [id, node] of Object.entries(output)) {
     if (!isTpType(node.class_type)) continue;
     const uiNode = nodeForExecId(id);
+    let canvasPlan = null; // what the node shows: which outputs still carry a file of this run
     for (const [consumerId, consumer] of Object.entries(output)) {
       for (const [k, v] of Object.entries(consumer.inputs ?? {})) {
         if (!Array.isArray(v) || String(v[0]) !== String(id) || !(v[1] > 0)) continue;
@@ -87,6 +88,13 @@ export function bindPrompt(output) {
         if (isBatchOutput(out)) {
           if (!batchReaders.has(id)) batchReaders.set(id, []);
           batchReaders.get(id).push([consumer, k]);
+          continue;
+        }
+        // An output whose tag left the text, or whose file was unplugged or changed, is kept while wired
+        // (the node marks it); sending its file would give the model an image the prompt doesn't name.
+        const reason = uiNode && out ? staleReason(uiNode, out, (canvasPlan ??= planFor(uiNode))) : null;
+        if (reason) {
+          errors.push(`${uiNode.title}: output ${outName} is wired to ${consumer._meta?.title ?? consumer.class_type}, but ${staleText(reason, outName)}`);
           continue;
         }
         const xkey = uiNode ? extraOutputKey(uiNode, out) : null;

@@ -4,8 +4,8 @@
 import { assetKind, getWidget, KINDS, mediaLabel, mediaPorts, mentionsIn, splitTag, tagKey } from "./common.js";
 import { currentGraph } from "./compat.js";
 import {
-  autogrowMax, claimsOf, extraInputs, isTaggedPrompt, localSources, outputAsset, resolveFor, sourceOfInput,
-  targetOf,
+  autogrowMax, claimsOf, extraInputs, extraOutputKey, isBatchOutput, isTaggedPrompt, localSources, outputAsset,
+  outputAssetName, resolveFor, sourceOfInput, targetOf,
 } from "./tp_model.js";
 
 /**
@@ -127,4 +127,44 @@ export function planFor(node, text = getWidget(node, "text")?.value ?? "") {
     tokens: mentionsIn(text), resolve: (tok) => resolveFor(node, tok),
   });
   return { ...plan, target, text };
+}
+
+/**
+ * Why a Reference Prompt "@name" output carries no file of this run, or null when it does (and for
+ * "text" / "images"). Outputs follow the tags: one per library tag in the text and one per plugged-in
+ * file. One that no longer matches is kept while it's wired (a wire is never cut for you), labelled
+ * with this reason, and the queue is refused until the tag or file is back or the wire is removed:
+ *   "not in text"     its library tag left the text
+ *   "unplugged"       its plugged-in file was unplugged (or muted, "muted")
+ *   "file changed"    the node that was plugged in now holds another file (another tag)
+ *   "library off" / "file missing" / "not in library"   its library file can't be used
+ */
+export function staleReason(node, out, plan) {
+  if (!out || out === node.outputs?.[0] || isBatchOutput(out)) return null;
+  const xkey = extraOutputKey(node, out);
+  if (xkey) {
+    if (plan.extras.some((x) => x.tag && tagKey(x.tag) === xkey && `@${x.tag}` === out.name)) return null;
+    if (claimsOf(node).get(xkey)?.claim?.muted) return "muted";
+    const src = node.properties?.tp_xsrc?.[out.name];
+    return src && plan.extras.some((x) => x.srcKey === src) ? "file changed" : "unplugged";
+  }
+  if (outputAssetName(out) == null) return null;
+  const res = outputAsset(node, out);
+  if (!res?.asset) return "not in library";
+  if (res.status === "off") return "library off";
+  if (res.status === "missing") return "file missing";
+  return plan.rows.some((r) => r.asset?.id === res.asset.id && !r.claim) ? null : "not in text";
+}
+
+/** The end of the queue error for a stale output (see staleReason). */
+export function staleText(reason, tag) {
+  return {
+    "not in text": `${tag} is no longer in the text. Add the tag back, or remove that wire.`,
+    unplugged: "its file was unplugged. Plug it back in, or remove that wire.",
+    muted: "its file is muted. Unmute it, or remove that wire.",
+    "file changed": "the node plugged in there now holds another file (with its own output). Use that output, or remove this wire.",
+    "library off": "its library is switched off in this node. Switch it on, or remove that wire.",
+    "file missing": "its file is missing on disk. Restore it, or remove that wire.",
+    "not in library": "its file is no longer in the library. Remove that wire.",
+  }[reason] ?? `it isn't used any more (${reason}). Remove that wire.`;
 }

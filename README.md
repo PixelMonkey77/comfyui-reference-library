@@ -270,9 +270,9 @@ The full order on the model is: files wired into the model by hand → **First**
 
 Good to know:
 
-- A plugged-in file **never takes over a library asset** with the same name: existing tags become
-  `@Library_01/Name`, the plain name means the plugged-in file, and a second one with that name gets
-  `@Name_2`.
+- A plugged-in file **never takes over a library asset** with the same name: it gets `@Name_2` instead
+  (`@Name_3` for a third…), and the plain `@Name` keeps meaning the library file. Your text is never
+  rewritten for you.
 - Unplugged or muted, its tags turn red and the queue is refused, so the run never silently uses a
   different file. Plug it back in (or click the red tag to use a library file of that name).
 - You can also wire a file **straight into the model's input**; it keeps that input, and its file name
@@ -291,7 +291,13 @@ The `images` output is made for models with a single `images` input (Nano Banana
 image 1; for your own resizing, batch the `@name` outputs yourself.
 
 The `@name` outputs also work anywhere else an image (video, audio) goes: previews, upscalers,
-IP-Adapter, … An output that is wired to something stays even if its tag is removed from the text.
+IP-Adapter, …
+
+**Outputs follow the tags.** When a tag leaves the text, or its plugged-in file is unplugged or swapped for
+another file, its output goes away. If you've wired it to something, the wire is never cut for you: the
+output stays, marked with the reason (`@Coin ⚠ not in text`, `⚠ unplugged`, `⚠ file changed`, …), and the
+queue is refused until you put the tag or file back or remove that wire. So a model never gets an image the
+prompt doesn't name.
 
 ## Libraries in detail
 

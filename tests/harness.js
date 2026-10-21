@@ -60,7 +60,7 @@ async function scenario(name, build) {
   try {
     const nodes = await build();
     await settle();
-    results[name] = { ...Object.fromEntries((nodes.tps ?? []).map((tp, i) => [`chips${i}`, chips(tp)])), ...Object.fromEntries((nodes.tps ?? []).map((tp, i) => [`ink${i}`, ink(tp)])), api: await api(), ...(nodes.extra?.inner ? { planInner: await planOf(nodes.extra.inner) } : {}) };
+    results[name] = { ...Object.fromEntries((nodes.tps ?? []).map((tp, i) => [`chips${i}`, chips(tp)])), ...Object.fromEntries((nodes.tps ?? []).map((tp, i) => [`ink${i}`, ink(tp)])), api: await api(), ...(nodes.extra?.inner ? { planInner: await planOf(nodes.extra.inner) } : {}), ...(nodes.extra?.outs ? { outs: nodes.extra.outs() } : {}) };
   } catch (e) { results[name] = { crash: String(e.stack ?? e) }; }
   for (const [g, n] of made.splice(0).reverse()) try { g.remove(n); } catch {}
   for (const n of [...app.graph._nodes]) if (!before.has(n.id)) try { app.graph.remove(n); } catch {}
@@ -183,7 +183,8 @@ await scenario("subgraph-boundary", async () => {
   return { tps: [] , extra: { inner } };
 });
 
-// 11. user's Test 01: plugging a same-name file qualifies the library tag; unplugged, its tag is red
+// 11. user's Test 01: a plugged-in file named like a library file gets "_2" (the text is never rewritten);
+//     unplugged, its tag is red
 await scenario("claims-test01", async () => {
   const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
   await wait(400);
@@ -192,12 +193,12 @@ await scenario("claims-test01", async () => {
   await settle();
   const a = loadImg("Biscuit.png", -400, 2000); a.connect(0, tp, idx(tp, "image_1"));
   await settle();
-  m.setWidget(tp, "text", m.getWidget(tp, "text").value + " next to @Biscuit");
+  m.setWidget(tp, "text", m.getWidget(tp, "text").value + " next to @Biscuit_2");
   await settle();
   tp.disconnectInput(idx(tp, "image_1"));
   return { tps: [tp] };
 });
-// 12. user's Test 02: two Load Images of the same file; unplug the first
+// 12. user's Test 02: two Load Images of the same file (Biscuit_2, Biscuit_3 next to the library's Biscuit); unplug the first
 await scenario("claims-test02", async () => {
   const tp = add("ReferencePrompt", 0, 2000); const t = add("GeminiNanoBanana2V2", 600, 2000);
   await wait(400);
@@ -221,6 +222,21 @@ await scenario("old-ids", async () => {
   m.setWidget(tp, "text", "@Biscuit meets @OldGift");
   tp.connect(0, t, idx(t, "prompt"));
   return { tps: [tp] };
+});
+
+// 14. outputs follow the tags: a wired output whose tag left the text, or whose file was changed or
+//     unplugged, stays (wire kept), is marked, and the queue is refused
+await scenario("stale-outputs", async () => {
+  const tp = add("ReferencePrompt", 0, 2000); const pv1 = add("PreviewImage", 600, 2000); const pv2 = add("PreviewImage", 600, 2300);
+  await wait(400);
+  m.setWidget(tp, "text", "@Buttons and @Giftwood");
+  const a = loadImg("Giftwood.png", -400, 2000);
+  a.connect(0, tp, idx(tp, "image_1")); await settle();
+  tp.connect(tp.outputs.findIndex((o) => o.name === "@Buttons"), pv1, 0);
+  tp.connect(tp.outputs.findIndex((o) => o.name === "@Giftwood"), pv2, 0);
+  m.setWidget(tp, "text", "only @Giftwood"); await settle();
+  a.widgets.find((w) => w.name === "image").value = "CAPIBARA.jpg";
+  return { tps: [tp], extra: { outs: () => tp.outputs.slice(1).map((o) => o.label ?? o.name).join(" | ") } };
 });
 
 await m.library.deleteLibrary(harnessLib);

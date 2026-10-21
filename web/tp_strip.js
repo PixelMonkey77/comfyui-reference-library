@@ -9,7 +9,7 @@ import {
   libToken, OUTPUT_TYPE, outputAsset, outputAssetName, renameOutput, setOutputAsset, syncClaims, unpluggedText,
 } from "./tp_model.js";
 import { restoreTags, snapshotTags } from "./tp_pins.js";
-import { planFor } from "./tp_plan.js";
+import { planFor, staleReason } from "./tp_plan.js";
 import { popup } from "./tp_popup.js";
 import { mediaThumb } from "./tp_style.js";
 import { h, icon } from "./ui.js";
@@ -156,17 +156,14 @@ function extraChip(node, x) {
 }
 
 /**
- * Keeps one output per tagged library file ("@name", typed IMAGE/VIDEO/AUDIO) after "text".
- * New ones are appended so existing slots never move; outputs that are wired to something are
- * never removed (editing a tag shouldn't cut links), only unwired ones whose tag is gone.
- */
-/**
  * The node's outputs after "text":
  *   - "images": every tagged image as one batch, in the order they're numbered (added once);
  *   - one "@name" output per library file tagged in the text;
  *   - one "@name" output per plugged-in file (its tag), so each can be resized or batched by hand.
- * Outputs that are wired to something are never removed. Each "@name" output shows where its file
- * lands, "@Coin (1)" = image_1, following First/Last and the target's own wiring.
+ * New ones are appended so existing slots never move. Each "@name" output shows where its file lands,
+ * "@Coin (1)" = image_1, following First/Last and the target's own wiring. An output whose file is no
+ * longer part of the run (tag gone, file unplugged or changed…) is removed, unless it's wired: a wire is
+ * never cut for the user; it stays, labelled "@Coin ⚠ not in text", and the queue is refused.
  */
 function syncOutputs(node, plan) {
   if (!library.loaded || !node.outputs) return;
@@ -228,8 +225,11 @@ function syncOutputs(node, plan) {
     const x = extras.get(key);
     if (!x || out.type !== OUTPUT_TYPE[x.kind] || out.name !== `@${x.tag}`) {
       const xout = { ...(props.tp_xout ?? {}) };
+      const xsrc = { ...(props.tp_xsrc ?? {}) };
       delete xout[out.name];
+      delete xsrc[out.name];
       props.tp_xout = xout;
+      props.tp_xsrc = xsrc;
       node.removeOutput(i);
       changed = true;
     }
@@ -240,10 +240,11 @@ function syncOutputs(node, plan) {
     if (haveX.has(key) || node.outputs.some((o) => o.name === name)) continue;
     node.addOutput(name, OUTPUT_TYPE[x.kind]);
     props.tp_xout = { ...(props.tp_xout ?? {}), [name]: key };
+    props.tp_xsrc = { ...(props.tp_xsrc ?? {}), [name]: x.srcKey }; // to tell "file changed" from "unplugged" later
     changed = true;
   }
 
-  // Where each file lands: "@Coin (1)" = image_1.
+  // Where each file lands: "@Coin (1)" = image_1; or why it no longer carries a file of this run.
   const at = new Map();
   for (const r of plan.rows) if (r.asset && r.n && !r.claim) at.set(`a:${r.asset.id}`, r.n);
   for (const x of plan.extras) if (x.tag && x.n) at.set(`x:${tagKey(x.tag)}`, x.n);
@@ -251,7 +252,10 @@ function syncOutputs(node, plan) {
     const xkey = extraOutputKey(node, out);
     const asset = xkey ? null : assetOf(out);
     const n = xkey ? at.get(`x:${xkey}`) : asset ? at.get(`a:${asset.id}`) : null;
-    const label = n ? `${out.name} (${n})` : undefined;
+    const reason = staleReason(node, out, plan);
+    const label = reason ? `${out.name} ⚠ ${reason}` : n ? `${out.name} (${n})` : undefined;
+    const x = xkey && !reason ? extras.get(xkey) : null;
+    if (x && props.tp_xsrc?.[out.name] !== x.srcKey) props.tp_xsrc = { ...(props.tp_xsrc ?? {}), [out.name]: x.srcKey };
     if (out.label !== label && !(label === undefined && out.label === out.name)) {
       out.label = label;
       changed = true;
