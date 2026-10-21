@@ -9,6 +9,7 @@
 - Outputs follow the tags: a wired `@name` output whose tag left the text, or whose plugged-in file was
   unplugged or changed, keeps its wire but is marked (`⚠ not in text`, `⚠ unplugged`, `⚠ file changed`…),
   and the queue is refused. Before, a library file could still be sent though the prompt no longer named it.
+  Those labels are shown in red.
 - A plugged-in file named like a library file gets `@Name_2`; the text is no longer rewritten
   (`@Library/Name`) and the library output keeps its name.
 

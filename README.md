@@ -296,7 +296,7 @@ IP-Adapter, …
 **Outputs follow the tags.** When a tag leaves the text, or its plugged-in file is unplugged or swapped for
 another file, its output goes away. If you've wired it to something, the wire is never cut for you: the
 output stays, marked with the reason (`@Coin ⚠ not in text`, `⚠ unplugged`, `⚠ file changed`, …), and the
-queue is refused until you put the tag or file back or remove that wire. So a model never gets an image the
+queue is refused until you put the tag or file back or remove that wire (the label is shown in red). So a model never gets an image the
 prompt doesn't name.
 
 ## Libraries in detail

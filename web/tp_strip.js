@@ -46,6 +46,7 @@ export function refreshStrip(node) {
   syncInputs(node);
   const plan = planFor(node); // once per refresh, shared with the ink and the outputs
   syncOutputs(node, plan);
+  setTimeout(() => markStaleOutputs(node), 50); // once the frontend has drawn the new labels
   renderInk(node, plan);
   // The tag being typed while the @ list is open gets no chip yet (like the ink, which stays neutral).
   const typing = popup.open && popup.state?.node === node ? tagKey(popup.state.mention.query) : null;
@@ -264,6 +265,19 @@ function syncOutputs(node, plan) {
   if (changed) {
     node.graph?.change?.();
     node.setDirtyCanvas?.(true, true);
+  }
+}
+
+/**
+ * Shows stale outputs ("@Coin ⚠ not in text") in red. The frontend draws the port labels and has no
+ * colour option, but it only ever updates a label's text, so a class on the label survives; the
+ * strip's regular refresh puts it back if a label is drawn anew.
+ */
+function markStaleOutputs(node) {
+  const box = document.querySelector(`.lg-node[data-node-id="${node.id}"]`);
+  if (!box || node.graph !== currentGraph()) return;
+  for (const span of box.querySelectorAll(".lg-slot--output span")) {
+    span.classList.toggle("tp-stale", span.textContent.includes(" ⚠ "));
   }
 }
 

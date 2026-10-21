@@ -45,6 +45,7 @@ export const CSS = `
 .tp-chip .tp-ph.tp-cthumb{color:var(--muted-foreground,#8a8a8a)}
 .tp-chip .tp-ph.tp-cthumb svg{width:22px;height:22px}
 .tp-extra .tp-cthumb{border-style:dashed;border-color:var(--muted-foreground,#8a8a8a)}
+.lg-slot--output span.tp-stale{color:var(--tp-tag-bad)}
 .tp-firstlast{width:60px;margin-top:2px;border:1px solid var(--border-color,#666);border-radius:5px;
   background:var(--secondary-background,#262729);color:var(--base-foreground,#fff);font:600 11px/20px Inter,system-ui,sans-serif;
   padding:0;cursor:pointer;white-space:nowrap}
