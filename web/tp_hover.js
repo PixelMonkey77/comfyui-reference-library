@@ -4,7 +4,7 @@ import { isOutputSlot, nodeFromElement, slotElementOf } from "./compat.js";
 import { openEditDialog } from "./dialogs.js";
 import { ensureInk, inkOf } from "./tp_ink.js";
 import {
-  enabledLibs, EXTRA_RE, extraMedia, isTaggedPrompt, outputAsset, outputAssetName, resolveFor, unpluggedText,
+  enabledLibs, EXTRA_RE, extraMedia, extraOutputKey, isTaggedPrompt, outputAsset, outputAssetName, resolveFor, unpluggedText,
 } from "./tp_model.js";
 import { setNodeText } from "./tp_pins.js";
 import { planFor } from "./tp_plan.js";
@@ -164,7 +164,10 @@ function hoverPort(slotEl) {
     const name = outputAssetName(port);
     if (name == null) return false;
     const row = plan.rows.find((r) => tagKey(r.tok) === tagKey(name));
-    info = cardInfo({ node, row, asset: outputAsset(node, port)?.asset, name: port.name, target: plan.target });
+    // A plugged-in file's output: its source node (recorded in tp_xsrc) gives the preview.
+    const srcKey = extraOutputKey(node, port) ? node.properties?.tp_xsrc?.[port.name] : null;
+    const extra = row?.extra ?? (srcKey ? plan.extras.find((x) => x.srcKey === srcKey) : undefined);
+    info = cardInfo({ node, row, extra, asset: outputAsset(node, port)?.asset, name: port.name, target: plan.target });
   } else {
     const extra = plan.extras.find((x) => x.input === port.name);
     if (!EXTRA_RE.test(port.name)) return false;

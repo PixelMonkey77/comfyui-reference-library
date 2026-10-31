@@ -10,6 +10,7 @@
   renames its tag in the text and its `@name` output (wires kept) to the new file's name, instead of leaving
   a red tag to fix by hand. A notice says what was renamed; undo restores both.
 - Tags in the prompt are colored by kind: images blue, videos cyan, audio green (problem colors unchanged).
+- Hovering the `@name` output of a plugged-in file shows its preview, as library outputs already did.
 
 ## 0.1.5
 
