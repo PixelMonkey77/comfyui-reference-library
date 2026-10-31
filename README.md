@@ -273,6 +273,9 @@ Good to know:
 - A plugged-in file **never takes over a library asset** with the same name: it gets `@Name_2` instead
   (`@Name_3` for a third…), and the plain `@Name` keeps meaning the library file. Your text is never
   rewritten for you.
+- **Its tag follows the file.** Pick or paste another image into the plugged-in Load Image, and its tag is
+  renamed to the new file's name everywhere in this node's text, along with its output (wires kept):
+  `@Red` becomes `@Blue`. Undo puts both back. (While it's unplugged, nothing is renamed.)
 - Unplugged or muted, its tags turn red and the queue is refused, so the run never silently uses a
   different file. Plug it back in (or click the red tag to use a library file of that name).
 - You can also wire a file **straight into the model's input**; it keeps that input, and its file name

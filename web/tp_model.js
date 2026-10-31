@@ -1,8 +1,10 @@
 // Reference Prompt: per-node settings, what is plugged in where (extras, targets, sources), and claims.
 import {
-  getWidget, hasMediaPorts, KINDS, library, mediaPorts, mentionsIn, splitTag, stem, tagKey, tagName, viewUrl,
+  getWidget, hasMediaPorts, KINDS, library, mediaPorts, mentionRe, mentionsIn, splitTag, stem, tagKey, tagName,
+  toast, viewUrl,
 } from "./common.js";
 import { allGraphs, currentGraph, isMuted, linkById, nodeDefOf, nodesOf, originOf, targetsOf } from "./compat.js";
+import { setNodeText } from "./tp_pins.js";
 
 export const NODE_TYPE = "ReferencePrompt";
 // Ids from before the rename to Reference Library (saved workflows use them): the same nodes.
@@ -196,7 +198,9 @@ const sourceFile = (s) => {
 
 /**
  * Brings the node's claims up to date with what is plugged in (runs on every strip refresh):
- *   1. a source keeps its claim while it's plugged in and its name is unchanged;
+ *   1. a source keeps its claim while it's plugged in and its name is unchanged; when the plugged-in
+ *      node gets another file (a new image picked or pasted), its claim follows it: renamed to the new
+ *      file's name, with its tags in this node's text and its "@name" output (wires kept);
  *   2. a new source takes over an unplugged claim with the same file name (it was re-plugged
  *      through another node, or the workflow was pasted), else gets a new unique name: one that no
  *      other claim and no library file of this node has ("Biscuit_2" next to a library "Biscuit"),
@@ -215,8 +219,24 @@ export function syncClaims(node) {
     const key = Object.keys(claims).find((k) => claims[k].src === s.src && claims[k].base === s.base && !assigned.has(k));
     if (key) assigned.set(key, (s.key = key, s));
   }
-  // 2. adopt an unplugged claim with the same file name, or claim a new name
+  // 1b. the same node now holds another file: rename its claim (in the text and on its output too)
   const libs = enabledLibs(node);
+  const renamed = []; // [old name, new name, old key]
+  for (const s of sources) {
+    if (s.key || [...assigned.values()].some((o) => o.src === s.src)) continue;
+    const old = Object.keys(claims).find((k) => claims[k].src === s.src && !assigned.has(k));
+    if (!old) continue;
+    const taken = (nm) => (claims[tagKey(nm)] && tagKey(nm) !== old) || library.resolve(nm, libs).asset;
+    let name = s.base;
+    for (let n = 2; taken(name); n++) name = `${s.base}_${n}`;
+    const key = tagKey(name);
+    const prev = claims[old];
+    delete claims[old];
+    claims[key] = { ...prev, name, base: s.base };
+    if (prev.name !== name) renamed.push([prev.name, name, old]);
+    assigned.set(key, (s.key = key, s));
+  }
+  // 2. adopt an unplugged claim with the same file name, or claim a new name
   for (const s of sources) {
     if (s.key || [...assigned.values()].some((o) => o.src === s.src)) continue; // same source, two inputs
     let key = Object.keys(claims).find((k) => claims[k].base === s.base && !assigned.has(k));
@@ -244,6 +264,33 @@ export function syncClaims(node) {
     node.properties ??= {};
     node.properties.tp_ext = claims;
     if (changed && !first) node.graph?.change?.();
+  }
+  for (const [from, to, oldKey] of renamed) followRenamedClaim(node, from, to, oldKey);
+}
+
+/** A plugged-in file's tag was renamed (its node now holds another file): rename its tags in the text and its output. */
+function followRenamedClaim(node, from, to, oldKey) {
+  const props = (node.properties ??= {});
+  for (const out of node.outputs ?? []) {
+    if (extraOutputKey(node, out) !== oldKey) continue;
+    const xout = { ...(props.tp_xout ?? {}) };
+    const xsrc = { ...(props.tp_xsrc ?? {}) };
+    const src = xsrc[out.name];
+    delete xout[out.name];
+    delete xsrc[out.name];
+    out.name = `@${to}`;
+    out.label = undefined; // the strip sets "(n)" again
+    xout[out.name] = tagKey(to);
+    if (src) xsrc[out.name] = src;
+    props.tp_xout = xout;
+    props.tp_xsrc = xsrc;
+    node.setDirtyCanvas?.(true, true);
+  }
+  const text = getWidget(node, "text")?.value ?? "";
+  const next = text.replace(mentionRe(), (all, pre, tok) => (!splitTag(tok).lib && tagKey(tok) === oldKey ? `${pre}@${to}` : all));
+  if (next !== text) {
+    setNodeText(node, next);
+    toast("info", `The plugged-in file changed, so its tag @${from} became @${to}.`);
   }
 }
 

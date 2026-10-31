@@ -4,6 +4,12 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
+## 0.1.6
+
+- A plugged-in file's tag follows its file: picking or pasting another image into the plugged-in Load Image
+  renames its tag in the text and its `@name` output (wires kept) to the new file's name, instead of leaving
+  a red tag to fix by hand. A notice says what was renamed; undo restores both.
+
 ## 0.1.5
 
 - Outputs follow the tags: a wired `@name` output whose tag left the text, or whose plugged-in file was
