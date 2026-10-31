@@ -129,7 +129,9 @@ library files: see [Files that aren't in a library](#files-that-arent-in-a-libra
 
 | Color | Meaning | Click it to… |
 |---|---|---|
-| Blue | Found in an enabled library (or a plugged-in file) | — |
+| Blue | An image, found in an enabled library (or a plugged-in file) | — |
+| Cyan | A video, found | — |
+| Green | An audio file, found | — |
 | Red | Unknown name, or its plugged-in file was unplugged / muted | use the library's file of that name, if any |
 | Purple | The library entry's file is missing on disk | replace the file |
 | Grey, struck through | Its library is switched off in this node | enable the library |

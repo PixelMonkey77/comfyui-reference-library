@@ -60,7 +60,11 @@ export const CSS = `
 .tp-hint{align-self:center;color:var(--descrip-text,#888)}
 :root{--tp-tag-ok:#4da3ff;--tp-tag-ok-bg:rgba(77,163,255,.16);--tp-tag-bad:#ff6b6b;--tp-tag-bad-bg:rgba(255,107,107,.16);
   --tp-tag-hl:#ffd400;--tp-tag-hl-bg:rgba(255,212,0,.22);
-  --tp-tag-missing:#c084fc;--tp-tag-missing-bg:rgba(192,132,252,.18);--tp-tag-off:var(--muted-foreground,#8a8a8a)}
+  --tp-tag-missing:#c084fc;--tp-tag-missing-bg:rgba(192,132,252,.18);--tp-tag-off:var(--muted-foreground,#8a8a8a);
+  --tp-tag-video:#34d7d9;--tp-tag-video-bg:rgba(52,215,217,.16);--tp-tag-audio:#4bd15b;--tp-tag-audio-bg:rgba(75,209,91,.16)}
+/* Before the highlight rules below, so hovering a video / audio tag still turns it yellow. */
+.tp-ink-ok.tp-ink-video{color:var(--tp-tag-video);background:var(--tp-tag-video-bg)}
+.tp-ink-ok.tp-ink-audio{color:var(--tp-tag-audio);background:var(--tp-tag-audio-bg)}
 .tp-chip{cursor:pointer;border-radius:6px}
 .tp-chip:hover img,.tp-chip:hover .tp-ph{outline:2px solid var(--tp-tag-hl);outline-offset:1px}
 .tp-ink.tp-ink-hl{color:var(--tp-tag-hl);background:var(--tp-tag-hl-bg)}

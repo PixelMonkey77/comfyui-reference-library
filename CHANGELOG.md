@@ -9,6 +9,7 @@
 - A plugged-in file's tag follows its file: picking or pasting another image into the plugged-in Load Image
   renames its tag in the text and its `@name` output (wires kept) to the new file's name, instead of leaving
   a red tag to fix by hand. A notice says what was renamed; undo restores both.
+- Tags in the prompt are colored by kind: images blue, videos cyan, audio green (problem colors unchanged).
 
 ## 0.1.5
 

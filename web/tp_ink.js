@@ -1,5 +1,5 @@
 // Reference Prompt: colored @tags in the editor (a mirror layer behind the textarea).
-import { getWidget, mentionRe, tagKey } from "./common.js";
+import { assetKind, getWidget, mentionRe, tagKey } from "./common.js";
 import { currentGraph, elementOfNode, widgetElement } from "./compat.js";
 import { planFor } from "./tp_plan.js";
 import { popup } from "./tp_popup.js";
@@ -87,9 +87,11 @@ export function renderInk(node, plan = null) {
   const value = ink.ta.value;
   const { rows } = plan && plan.text === value ? plan : planFor(node, value);
   const known = new Map(rows.map((r) => [tagKey(r.tok), r.status === "unplugged" ? "unplugged" : r.state]));
+  // Found tags are colored by kind: images blue, videos cyan, audio green.
+  const kinds = new Map(rows.map((r) => [tagKey(r.tok), r.kind ?? (r.asset ? assetKind(r.asset) : null)]));
   // The tag being typed while the popup is open stays neutral instead of flashing red.
   const typing = popup.open && popup.state.editor === ink.ta ? popup.state.mention.at : -1;
-  const sig = JSON.stringify([value, [...known], typing]);
+  const sig = JSON.stringify([value, [...known], [...kinds], typing]);
   if (sig === ink.sig) return;
   ink.sig = sig;
 
@@ -100,8 +102,10 @@ export function renderInk(node, plan = null) {
     const end = m.index + m[0].length;
     frag.append(value.slice(last, start));
     const state = known.get(tagKey(m[2])) ?? "bad";
-    const cls = state === "ok" ? "tp-ink-ok" : start === typing ? "" : `tp-ink-${state === "unplugged" ? "bad" : state}`;
     const key = tagKey(m[2]);
+    const kind = kinds.get(key);
+    const cls = state === "ok" ? `tp-ink-ok${kind === "video" || kind === "audio" ? ` tp-ink-${kind}` : ""}`
+      : start === typing ? "" : `tp-ink-${state === "unplugged" ? "bad" : state}`;
     const hl = key === ink.hlKey ? " tp-ink-hl" : "";
     const span = h("span", `tp-ink ${cls}${hl}`, { textContent: value.slice(start, end) });
     span.dataset.tag = m[2];
