@@ -4,6 +4,17 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
+## 0.1.7
+
+- **Edit library:** the ✎ next to a library in the Libraries menu opens a large dialog instead of just a
+  rename box. Rename the library at the top; below, a scrollable grid of its files (filterable), and a
+  properties panel for the selected one: preview (video and audio play), `@name` (rename), file name and
+  local path (copy), **Replace file…** (keeps its name and tags; locates a missing file) and
+  **Remove from library**. **+ Add files…** adds to this library. Keyboard: arrows, Delete, F2 / Enter.
+- Several assets can be selected (⌘/Ctrl-click, Shift-click, Shift+arrows, Space, ⌘/Ctrl+A) and removed
+  together; rename, replace, copy path and the preview are off until one asset is selected.
+- A **Thumbnail size** slider in the header sets the grid's tile size (remembered in this browser).
+
 ## 0.1.6
 
 - A plugged-in file's tag follows its file: picking or pasting another image into the plugged-in Load Image

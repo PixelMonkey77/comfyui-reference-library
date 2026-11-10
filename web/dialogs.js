@@ -1,6 +1,8 @@
 // Library dialogs: Add (pick library, pick files, name a single file), Edit an asset (rename /
-// replace its file / remove), and the per-node Libraries dropdown (toggle, rename, delete).
+// replace its file / remove), and the per-node Libraries dropdown (toggle, edit, delete). Editing a
+// library (rename it, manage its assets) is lib_manager.js.
 import { KINDS, assetKind, formatDuration, kindOfPath, library, stem, tagName, toast } from "./common.js";
+import { openLibraryManager } from "./lib_manager.js";
 import { field, h, icon, installUiStyle, modal } from "./ui.js";
 
 // Prompt rewriting lives in tp_pins.js; tagged_prompt.js registers these so renames update the prompts.
@@ -11,9 +13,11 @@ let hooks = {
   restore: () => 0, // snapshot -> re-points moved tags, returns how many changed
 };
 export const setHooks = (h) => (hooks = { ...hooks, ...h });
+/** Libraries enabled in a Reference Prompt (a Set of ids), or null = all. */
+export const enabledSetFor = (node) => hooks.enabledSet(node);
 
 /** Runs a library change with tags pinned to their files (renames followed, take-overs prevented). */
-async function pinned(change) {
+export async function pinned(change) {
   if (!hooks.snapshot) console.warn("[LibraryImage] tag hooks not registered; tags won't follow renames");
   library.hold(); // strips and outputs update once, after the tags are re-pinned
   try {
@@ -320,36 +324,6 @@ export function confirmModal(title, message, confirmLabel = "OK", danger = true)
   });
 }
 
-function renameLibraryDialog(lib) {
-  const name = field("Library name", h("input", "tpm-input", { value: lib.name, spellcheck: false }));
-  name.input.oninput = () => (name.error.textContent = "");
-  modal({
-    title: `Rename ${lib.name}`,
-    content: [name.el, h("div", "tpm-note", { textContent: "Tags that name this library (@Library/Name) are updated in this workflow." })],
-    actions: [
-      { label: "Cancel", onClick: (c) => c.close() },
-      {
-        label: "Save", kind: "primary", onClick: async (ctl) => {
-          const n = tagName(name.input.value);
-          if (!n) return void (name.error.textContent = "Library names need at least one letter or digit.");
-          if (n === lib.name) return ctl.close();
-          ctl.busy(true);
-          let fixed = 0;
-          try {
-            ({ fixed } = await pinned(() => library.renameLibrary(lib.id, n)));
-          } catch (e) {
-            ctl.busy(false);
-            name.error.textContent = e.message;
-            return;
-          }
-          toast("success", `${lib.name} is now ${n}.${fixed ? ` Updated ${fixed} tag${fixed > 1 ? "s" : ""}.` : ""}`);
-          ctl.close(true);
-        },
-      },
-    ],
-  });
-}
-
 // ---------------------------------------------------------------- Libraries dropdown
 
 const PANEL_CSS = `
@@ -420,11 +394,11 @@ export function toggleLibraryPanel(anchor, node, onChange) {
         render();
         onChange?.();
       };
-      const ren = h("button", "tpl-icon", { type: "button", title: "Rename library" });
+      const ren = h("button", "tpl-icon", { type: "button", title: "Edit library: rename it, manage its assets" });
       ren.append(icon("pencil"));
       ren.onclick = () => {
         close();
-        renameLibraryDialog(lib);
+        openLibraryManager(lib, { node });
       };
       const del = h("button", "tpl-icon", { type: "button", title: "Delete library" });
       del.append(icon("trash"));

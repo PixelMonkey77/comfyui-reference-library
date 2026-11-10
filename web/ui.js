@@ -92,6 +92,7 @@ function onKey(e) {
   // save page / open file / print dialogs appear instead.
   if ((e.ctrlKey || e.metaKey) && /^[sop]$/i.test(e.key)) e.preventDefault();
   if (e.isComposing || e.keyCode === 229) return; // IME: Enter/Escape belong to the composition
+  if (e.key !== "Escape" && ctl.onKey?.(e, ctl)) return; // the dialog handled it (Enter in a field, arrows, …)
   const box = ctl.box;
   if (!box.contains(document.activeElement)) box.focus();
   if (e.key === "Escape") {
@@ -118,14 +119,16 @@ function onKey(e) {
 /**
  * Opens a modal. `actions` = [{ label, icon?, kind?: "primary"|"danger", left?, onClick(ctl) }].
  * `focus`: label of the button to focus first (default: the first field, else the box itself).
+ * `cls`: extra class on the dialog box (e.g. a wider layout). `onKey(e, ctl)`: keys go to the dialog's
+ * own handler first (keydown never reaches elements inside: see onKey above); return true if handled.
  * Returns a controller: { body, close(), busy(bool), button(label), setActions(), closed }.
  * While busy (an async step is running) the dialog can't be closed; Escape closes otherwise.
  */
-export function modal({ title, content = [], actions = [], onClose, focus = null }) {
+export function modal({ title, content = [], actions = [], onClose, focus = null, cls = "", onKey: keyHook = null }) {
   installUiStyle();
   const returnFocus = document.activeElement;
   const overlay = h("div", "tpm-overlay");
-  const box = h("div", "tpm", { tabIndex: -1 });
+  const box = h("div", `tpm${cls ? ` ${cls}` : ""}`, { tabIndex: -1 });
   box.setAttribute("role", "dialog");
   box.setAttribute("aria-modal", "true");
   const head = h("div", "tpm-head");
@@ -143,6 +146,7 @@ export function modal({ title, content = [], actions = [], onClose, focus = null
   const ctl = {
     body, box, overlay, titleEl,
     closed: false,
+    onKey: keyHook,
     /** Closes the dialog; ignored while busy unless `force`. */
     close(force = false) {
       if (ctl.closed || (isBusy && !force)) return;

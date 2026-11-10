@@ -312,8 +312,16 @@ prompt doesn't name.
   computer has a library with the same names. Sharing libraries is planned.
 - **Several libraries.** A plain `@Biscuit` means the first enabled library that has it;
   `@Library_02/Biscuit` names the library (typing `@Library_02/` in the list shows only that library).
-- **Per node:** switch libraries on or off in each node's **Libraries** menu, which also renames and
+- **Per node:** switch libraries on or off in each node's **Libraries** menu, which also edits and
   deletes libraries.
+- **Edit a library:** click **✎** next to it in the **Libraries** menu. Rename the library at the top;
+  below, all its files in a grid (filter them by name; the **Thumbnail size** slider sets how big they
+  are). Select one to see its preview, `@name`, file name and full path on the right, and to rename it,
+  **Replace file…** (same type; its name and tags stay) or **Remove from library**. Select several
+  (⌘/Ctrl-click, Shift-click, Shift+arrows, ⌘/Ctrl+A) to remove them all at once; renaming, replacing,
+  copying the path and the preview need a single asset. **+ Add files…** adds more. Missing files are
+  marked purple: replace them to point at their new location. Arrow keys move through the grid, Space
+  adds or takes out one, **Delete** removes, **F2** or **Enter** renames. Changes are saved straight away.
 - **Tags follow changes.** Renaming, replacing or removing an asset, or deleting or switching a
   library, keeps every tag in the open workflow on its file (renames follow; a removed file's tag
   turns red).
