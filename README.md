@@ -315,8 +315,8 @@ prompt doesn't name.
 - **Per node:** switch libraries on or off in each node's **Libraries** menu, which also edits and
   deletes libraries.
 - **Edit a library:** click **✎** next to it in the **Libraries** menu. Rename the library at the top;
-  below, all its files in a grid (filter them by name; the **Thumbnail size** slider sets how big they
-  are). Select one to see its preview, `@name`, file name and full path on the right, and to rename it,
+  below, all its files in a grid (filter them by type with the image / video / audio buttons, or by name;
+  the **Thumbnail size** slider sets how big they are). Select one to see its preview, `@name`, file name and full path on the right, and to rename it,
   **Replace file…** (same type; its name and tags stay) or **Remove from library**. Select several
   (⌘/Ctrl-click, Shift-click, Shift+arrows, ⌘/Ctrl+A) to remove them all at once; renaming, replacing,
   copying the path and the preview need a single asset. **+ Add files…** adds more. Missing files are

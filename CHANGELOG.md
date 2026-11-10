@@ -14,6 +14,8 @@
 - Several assets can be selected (⌘/Ctrl-click, Shift-click, Shift+arrows, Space, ⌘/Ctrl+A) and removed
   together; rename, replace, copy path and the preview are off until one asset is selected.
 - A **Thumbnail size** slider in the header sets the grid's tile size (remembered in this browser).
+- Image / video / audio buttons next to the filter field show or hide each type. The selection only keeps
+  assets that are shown, so Remove never takes hidden ones.
 
 ## 0.1.6
 

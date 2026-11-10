@@ -15,7 +15,16 @@ const CSS = `
 .tlm-top .tpm-field{flex:1;min-width:220px;max-width:420px}
 .tlm-row{display:flex;gap:6px}
 .tlm-row .tpm-input{flex:1;min-width:0}
-.tlm-search{width:200px;margin:19px 0 0 auto}
+.tlm-filters{display:flex;align-items:center;gap:6px;margin:19px 0 0 auto}
+.tlm-search{width:190px}
+.tlm-kind{display:inline-flex;align-items:center;justify-content:center;flex:none;width:34px;height:32px;padding:0;box-sizing:border-box;
+  border-radius:6px;border:1px solid var(--secondary-background,#262729);background:transparent;color:var(--muted-foreground,#8a8a8a);
+  cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.tlm-kind:hover{border-color:color-mix(in srgb,var(--base-foreground,#fff) 60%,transparent);color:color-mix(in srgb,var(--base-foreground,#fff) 60%,transparent)}
+.tlm-kind[aria-pressed="true"]{background:var(--base-foreground,#fff);border-color:var(--base-foreground,#fff);color:var(--base-background,#171718)}
+.tlm-kind:focus-visible{outline:2px solid var(--base-foreground,#fff);outline-offset:2px}
+.tlm-kind:disabled{opacity:.35;cursor:default}
+.tlm-kind svg{width:16px;height:16px;pointer-events:none}
 .tlm-size{display:flex;flex-direction:column;gap:4px;width:170px}
 .tlm-sizerow{display:flex;align-items:center;gap:6px;height:32px;color:var(--muted-foreground,#8a8a8a)}
 .tlm-sizerow svg{flex:none;width:12px;height:12px}
@@ -129,8 +138,24 @@ export function openLibraryManager(lib, { node = null } = {}) {
   big.classList.add("tlm-big");
   sizeRow.append(small, size, big);
   sizeField.append(h("span", "tpm-label", { textContent: "Thumbnail size" }), sizeRow);
+  // Type filters (image / video / audio), all shown at first.
+  const shownKinds = new Set(KINDS);
+  const kindBtns = {};
+  const filters = h("div", "tlm-filters");
+  for (const k of KINDS) {
+    const b = h("button", "tlm-kind", { type: "button" });
+    b.append(icon(k));
+    b.onclick = () => {
+      if (shownKinds.has(k)) shownKinds.delete(k);
+      else shownKinds.add(k);
+      filterChanged();
+    };
+    kindBtns[k] = b;
+    filters.append(b);
+  }
+  filters.append(search);
   const top = h("div", "tlm-top");
-  top.append(libField, sizeField, search);
+  top.append(libField, sizeField, filters);
 
   // ---- main: grid + properties
   const grid = h("div", "tlm-grid");
@@ -148,7 +173,8 @@ export function openLibraryManager(lib, { node = null } = {}) {
   const assets = () => library.assets.filter((a) => a.library === libId);
   const visible = () => {
     const q = search.value.trim().toLowerCase();
-    return assets().filter((a) => !q || a.name.toLowerCase().includes(q) || baseName(a.path).toLowerCase().includes(q));
+    return assets().filter((a) => shownKinds.has(assetKind(a))
+      && (!q || a.name.toLowerCase().includes(q) || baseName(a.path).toLowerCase().includes(q)));
   };
 
   // ---- grid
@@ -218,13 +244,25 @@ export function openLibraryManager(lib, { node = null } = {}) {
     if (!list.length) {
       const all = assets().length;
       grid.append(h("div", "tlm-empty", {
-        textContent: all ? `No asset matches “${search.value.trim()}”.` : "This library is empty. Add files to it with + Add files… below.",
+        textContent: !all ? "This library is empty. Add files to it with + Add files… below."
+          : !shownKinds.size ? "All types are hidden. Turn on images, videos or audio above."
+          : search.value.trim() ? `No ${shownKinds.size < KINDS.length ? "shown " : ""}asset matches “${search.value.trim()}”.`
+          : "No assets of the shown types.",
       }));
       grid.lastChild.style.gridColumn = "1 / -1";
     }
     const n = assets().length;
+    for (const k of KINDS) {
+      const c = assets().filter((a) => assetKind(a) === k).length;
+      const on = shownKinds.has(k);
+      const label = { image: "Images", video: "Videos", audio: "Audio" }[k];
+      kindBtns[k].setAttribute("aria-pressed", String(on));
+      kindBtns[k].title = `${label} (${c}): ${on ? "shown" : "hidden"}. Click to ${on ? "hide" : "show"} them.`;
+      kindBtns[k].setAttribute("aria-label", kindBtns[k].title);
+    }
     const enabled = enabledSetFor(node);
-    note.textContent = `${n} asset${n === 1 ? "" : "s"}${sel.size > 1 ? `, ${sel.size} selected` : ""}. ⌘/Ctrl-click or Shift-click to select several. `
+    const shown = list.length < n ? `, ${list.length} shown` : "";
+    note.textContent = `${n} asset${n === 1 ? "" : "s"}${shown}${sel.size > 1 ? `, ${sel.size} selected` : ""}. ⌘/Ctrl-click or Shift-click to select several. `
       + "Changes are saved straight away; tags in this workflow follow renames and replaced files."
       + (enabled && !enabled.has(libId) ? ` ${libNow()?.name ?? lib.name} is switched off in this node.` : "");
   }
@@ -589,12 +627,30 @@ export function openLibraryManager(lib, { node = null } = {}) {
     toast(res.added.length ? (res.rejected?.length ? "warn" : "success") : "warn", bits.join(" ") || "Nothing was added.");
     if (res.added.length) {
       search.value = "";
+      for (const a of res.added) shownKinds.add(assetKind(a)); // new files are never added out of sight
       select(res.added[0].id);
     }
   }
 
   // ---- dialog
-  search.oninput = () => renderGrid(); // the panel keeps showing the selected asset even if the filter hides it
+  /**
+   * Filters changed: the selection keeps only what's still shown, so Remove never takes assets you
+   * can't see. If nothing selected is left, the first shown asset is selected.
+   */
+  function filterChanged() {
+    const ids = new Set(visible().map((a) => a.id));
+    for (const id of [...sel]) if (!ids.has(id)) sel.delete(id);
+    if (!ids.has(focusId)) focusId = null;
+    if (!ids.has(anchorId)) anchorId = null;
+    if (!sel.size && ids.size) {
+      const first = visible()[0].id;
+      sel.add((focusId = anchorId = first));
+    }
+    focusId ??= [...sel][0] ?? null;
+    renderGrid();
+    renderProps();
+  }
+  search.oninput = () => filterChanged();
 
   const unsub = library.onChange(() => {
     if (ctl.closed) return;
