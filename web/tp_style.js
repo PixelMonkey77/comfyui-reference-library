@@ -14,6 +14,14 @@ export const CSS = `
 .tp-btn{border:1px solid var(--border-color,#666);background:var(--comfy-input-bg,#353535);color:inherit;
   border-radius:6px;padding:3px 9px;cursor:pointer;font:inherit;font-size:12px}
 .tp-btn:hover{filter:brightness(1.15)}
+.tp-htools{display:flex;align-items:center;gap:4px}
+.tp-htools .tp-btn{margin-left:4px}
+.tp-kbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:24px;padding:0;box-sizing:border-box;
+  border-radius:6px;border:1px solid var(--secondary-background,#262729);background:transparent;color:var(--muted-foreground,#8a8a8a);
+  cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.tp-kbtn:hover{border-color:color-mix(in srgb,var(--base-foreground,#fff) 60%,transparent);color:color-mix(in srgb,var(--base-foreground,#fff) 60%,transparent)}
+.tp-kbtn[aria-pressed="true"]{background:var(--base-foreground,#fff);border-color:var(--base-foreground,#fff);color:var(--base-background,#171718)}
+.tp-kbtn svg{width:14px;height:14px;pointer-events:none}
 .tp-list{overflow:auto;overscroll-behavior:contain;padding:4px}
 .tp-item{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:9px;padding:4px 6px;
   border-radius:7px;cursor:pointer}
@@ -99,6 +107,13 @@ export const CSS = `
 .tp-hover .tp-htitle svg{width:14px;height:14px;flex:none}
 .tp-hover .tp-hslot{color:var(--input-text,#ddd);font-family:ui-monospace,Consolas,monospace}
 .tp-hover video{width:200px;max-height:200px;border-radius:5px;background:#111}
+.tp-hover.tp-hsticky{pointer-events:auto}
+.tp-hover .tp-hpic{position:relative;display:flex}
+.tp-hover .tp-hslice{position:absolute;top:6px;right:6px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;
+  padding:0;border-radius:6px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.6);color:#fff;cursor:pointer;
+  transition:background .15s,border-color .15s}
+.tp-hover .tp-hslice:hover{background:rgba(0,0,0,.85);border-color:#fff}
+.tp-hover .tp-hslice svg{width:16px;height:16px;pointer-events:none}
 .tp-media{position:relative;flex:none}
 .tp-media .tp-badge{position:absolute;left:2px;bottom:2px;padding:0 4px;border-radius:4px;background:rgba(0,0,0,.72);
   color:#fff;font-size:9px;line-height:14px;pointer-events:none;white-space:nowrap}

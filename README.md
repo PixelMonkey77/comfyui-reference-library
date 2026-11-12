@@ -41,6 +41,7 @@ the same two nodes, however many references you use.
 - [Supported model nodes](#supported-model-nodes)
 - [Older models with one image input](#older-models-with-one-image-input)
 - [Files that aren't in a library](#files-that-arent-in-a-library)
+- [Slices: use part of an image](#slices-use-part-of-an-image)
 - [Outputs: every tagged file, and a batch](#outputs-every-tagged-file-and-a-batch)
 - [Libraries in detail](#libraries-in-detail)
 - [Reference Image / Video / Audio nodes](#reference-image--video--audio-nodes)
@@ -53,8 +54,8 @@ the same two nodes, however many references you use.
 
 ### 1. The Reference Prompt node
 
-Add it from **Add Node → image → library → Reference Prompt**. The header holds your libraries, the
-filters for the `@` list, and the button to add files.
+Add it from **Add Node → image → library → Reference Prompt**. The header holds your libraries and the
+button to add files.
 
 <img src="docs/images/01_reference_prompt_node.png" width="720" alt="The Reference Prompt node">
 
@@ -92,7 +93,8 @@ In the `@` list, hover a file and click **✎**. Rename it (tags already in your
 
 ### 7. Mention an asset
 
-Type `@` and a few letters, then **Enter** or **Tab** to insert. `↑` `↓` select, **Esc** closes.
+Type `@` and a few letters, then **Enter** or **Tab** to insert. `↑` `↓` select, **Esc** closes. The
+image / video / audio buttons at the top of the list show or hide each type (saved with the node).
 
 <img src="docs/images/07_mention_an_asset.png" width="720" alt="Type @ to mention an asset">
 
@@ -102,7 +104,8 @@ Tagged files appear under the text, in the order they will be sent (`image 1`, `
 
 ### 8. Hover a tag
 
-Hover a tag in the text for a large preview, where it goes, and where the file is.
+Hover a tag in the text for a large preview, where it goes, and where the file is. On a library image,
+the dotted-square button opens the slicer: see [Slices](#slices-use-part-of-an-image).
 
 <img src="docs/images/09_hover_a_tag.png" width="720" alt="Hover a tag for a preview">
 
@@ -283,6 +286,24 @@ Good to know:
 - You can also wire a file **straight into the model's input**; it keeps that input, and its file name
   works as a tag.
 - It also gets its own output on the Reference Prompt, like library files: see [Outputs](#outputs-every-tagged-file-and-a-batch).
+
+## Slices: use part of an image
+
+Need only a face, a logo or a prop from a library image? Hover its tag and click the **dotted square** in the
+top-right corner of the preview. The image opens large:
+
+- **Drag** to mark an area; drag inside it to move it, the handles resize it. **Shift** (or **Square**)
+  keeps it square. **Select all** / **Clear**, arrow keys nudge it.
+- **Zoom** with the wheel or a pinch (or **−** / **+**, **Fit**, **1:1**); **pan** with Space+drag or the
+  middle mouse button. The selection's size is shown in the file's own pixels.
+
+**Replace with slice** cuts the area out of the full-size file and saves it as a new PNG in ComfyUI's
+`input` folder (`Alex_slice_01.png`, `Alex_slice_02.png`, …). A **Load Image** node ("Slice of @Alex") is
+added to the left of the Reference Prompt and plugged into its next free `image_N` input, and every tag of
+that image in this prompt (`@Alex`, `@Characters/Alex`) becomes the slice's tag (`@Alex_slice_01`). From
+there it is a [file that isn't in a library](#files-that-arent-in-a-library): First/Last, its own output,
+and so on. The library and its file are never changed; delete the Load Image node and put the tag back to
+undo it.
 
 ## Outputs: every tagged file, and a batch
 

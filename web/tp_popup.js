@@ -1,17 +1,17 @@
 // Reference Prompt: the @ autocomplete popup and editor listeners.
-import { assetKind, getWidget, library, MENTION_AT_CARET, tagKey, tagTail, toast } from "./common.js";
+import { assetKind, getWidget, KINDS, library, MENTION_AT_CARET, tagKey, tagTail, toast } from "./common.js";
 import { currentGraph, nodeFromElement, nodesOf, widgetElement } from "./compat.js";
 import { confirmModal, openAddDialog, openEditDialog } from "./dialogs.js";
 import { hover, suppressPopupUntil } from "./tp_hover.js";
 import { renderInk } from "./tp_ink.js";
 import {
-  claimedKeys, enabledKinds, enabledLibs, extraMedia, isTaggedPrompt, libToken, MAX_RESULTS,
+  claimedKeys, enabledKinds, enabledLibs, extraMedia, isTaggedPrompt, KIND_LABEL, libToken, MAX_RESULTS,
 } from "./tp_model.js";
 import { pinnedChange } from "./tp_pins.js";
 import { planFor } from "./tp_plan.js";
 import { extraThumb, refreshStrip, scheduleStrip } from "./tp_strip.js";
 import { installStyle, mediaThumb } from "./tp_style.js";
-import { h } from "./ui.js";
+import { h, icon } from "./ui.js";
 
 /** The Reference Prompt node owning a textarea (works for Vue-rendered and classic nodes). */
 function promptNodeFor(el) {
@@ -80,7 +80,18 @@ export const popup = {
     const title = h("span", "tp-title", { textContent: "Reference Library" });
     const add = h("button", "tp-btn", { type: "button", textContent: "+ Add", title: "Add images, videos or audio files" });
     add.onclick = () => this.addImages();
-    head.append(title, add);
+    // Type filters for this list (saved per node, with the workflow).
+    const tools = h("div", "tp-htools");
+    this.kindBtns = {};
+    for (const kind of KINDS) {
+      const b = h("button", "tp-kbtn", { type: "button" });
+      b.append(icon(kind));
+      b.onclick = () => this.toggleKind(kind);
+      this.kindBtns[kind] = b;
+      tools.append(b);
+    }
+    tools.append(add);
+    head.append(title, tools);
     this.list = h("div", "tp-list");
     this.list.setAttribute("role", "listbox");
     this.list.setAttribute("aria-label", "Files to tag");
@@ -94,6 +105,21 @@ export const popup = {
     this.title = title;
     this.el = el;
     return el;
+  },
+
+  /** Shows or hides one type of file in this node's @ list, and redraws the list in place. */
+  toggleKind(kind) {
+    const s = this.state;
+    if (!s) return;
+    const on = new Set(enabledKinds(s.node));
+    if (on.has(kind)) on.delete(kind);
+    else on.add(kind);
+    s.node.properties ??= {};
+    s.node.properties.tp_kinds = KINDS.filter((k) => on.has(k));
+    s.node.graph?.change?.(); // marks the workflow as modified
+    const m = mentionAtCaret(s.editor);
+    if (m) this.render(s.editor, s.node, m);
+    else this.hide();
   },
 
   get open() {
@@ -173,6 +199,14 @@ export const popup = {
     const keep = this.state?.editor === editor ? this.state.items[this.state.selected]?.id : null;
     const sel = Math.max(0, items.findIndex((it) => it.id === keep));
     this.state = { editor, node, mention, items, selected: sel };
+    for (const kind of KINDS) {
+      const b = this.kindBtns[kind];
+      const on = kinds.has(kind);
+      const n = library.assets.filter((a) => libs.has(a.library) && assetKind(a) === kind).length;
+      b.setAttribute("aria-pressed", String(on));
+      b.title = `${KIND_LABEL[kind]} (${n}): ${on ? "shown" : "hidden"} in this list. Click to ${on ? "hide" : "show"} them.`;
+      b.setAttribute("aria-label", b.title);
+    }
     const filtered = shown.length !== library.assets.length;
     this.title.textContent = filtered
       ? `Libraries (${shown.length} of ${library.assets.length})`
@@ -185,8 +219,8 @@ export const popup = {
         textContent: !library.libraries.length
           ? "No libraries yet. Use + Add to pick image, video or audio files; they stay where they are."
           : !libs.size ? "All libraries are switched off in this node's header."
-          : !kinds.size ? "All types are switched off in this node's header."
-          : `Nothing matches “${mention.query}”${hidden ? ` (${hidden} hidden by the header filters)` : ""}.`,
+          : !kinds.size ? "All types are hidden: turn on images, videos or audio with the buttons above."
+          : `Nothing matches “${mention.query}”${hidden ? ` (${hidden} hidden by the type buttons above or the node's Libraries)` : ""}.`,
       }));
     }
     items.forEach((it, i) => {

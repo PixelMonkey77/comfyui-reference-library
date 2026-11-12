@@ -9,6 +9,7 @@ import {
 import { setNodeText } from "./tp_pins.js";
 import { planFor } from "./tp_plan.js";
 import { popup } from "./tp_popup.js";
+import { sliceIntoPrompt } from "./tp_slice.js";
 import { setLibEnabled } from "./tp_strip.js";
 import { h, icon } from "./ui.js";
 
@@ -60,12 +61,17 @@ function cardInfo({ node, row, extra, asset, name, target }) {
   const where = a ? `${lib?.name ?? "?"} · ${a.path}`
     : extra ? `${extra.src?.title ?? "input"}${media.file ? ` · ${media.file}` : ""} (via ${extra.input})`
     : "";
+  // A library image tagged in the text can be sliced: cut an area out, plugged in instead of it.
+  const slice = node && row && row.asset && !row.extra && !row.wiredByHand && !row.claim && kind === "image"
+    && status === "ok" && a?.exists !== false ? { node, asset: a } : null;
   return { kind, name: name ?? (a ? `@${a.name}` : extra?.tag ? `@${extra.tag}` : extra?.input ?? ""),
-    a: state === "missing" ? null : a, url: media.url, slot, where, state, action };
+    a: state === "missing" ? null : a, url: media.url, slot, where, state, action, slice };
 }
 
 export const hover = {
   el: null, key: null, pinned: false,
+  sticky: false, // the card has a button (slice): it waits a moment so the mouse can reach it
+  _timer: null,
 
   ensure() {
     if (!this.el) {
@@ -76,7 +82,23 @@ export const hover = {
     return this.el;
   },
 
+  /** Hides a sticky card after a short delay, unless the mouse reaches it (or another tag) first. */
+  hideSoon() {
+    if (!this.sticky) return this.hide();
+    if (this._timer) return;
+    this._timer = setTimeout(() => {
+      this._timer = null;
+      this.hide();
+    }, 450);
+  },
+  keep() {
+    clearTimeout(this._timer);
+    this._timer = null;
+  },
+
   hide() {
+    this.keep();
+    this.sticky = false;
     if (this.el) {
       this.el.hidden = true;
       this.el.querySelector("video")?.pause();
@@ -90,11 +112,13 @@ export const hover = {
    * (opened by clicking a struck-through or purple tag) takes clicks and stays until dismissed.
    */
   show(key, info, rect, { pinned = false } = {}) {
+    this.keep();
     if (key === this.key && pinned === this.pinned) return;
     this.key = key;
     this.pinned = pinned;
+    this.sticky = !!info.slice;
     const el = this.ensure();
-    el.className = `tp-hover${info.state && info.state !== "ok" ? ` tp-h${info.state}` : ""}${pinned ? " tp-pinned" : ""}`;
+    el.className = `tp-hover${info.state && info.state !== "ok" ? ` tp-h${info.state}` : ""}${pinned ? " tp-pinned" : ""}${info.slice ? " tp-hsticky" : ""}`;
     el.replaceChildren();
     const { a, kind } = info;
     if (kind === "video" && (a ? a.exists !== false : info.url)) {
@@ -109,7 +133,22 @@ export const hover = {
     } else if (a || info.url) {
       const img = h("img", "", { alt: "", src: a ? library.thumbUrl(a, 256) : info.url });
       img.onerror = () => img.remove();
-      el.append(img);
+      if (info.slice) {
+        // Slice: open the image large, zoom, mark an area and use it instead of the library file.
+        const pic = h("div", "tp-hpic");
+        const b = h("button", "tp-hslice", { type: "button", title: "Slice: open the image large and cut out an area to use instead" });
+        b.setAttribute("aria-label", b.title);
+        b.append(icon("slice"));
+        b.onclick = (e) => {
+          e.stopPropagation();
+          const { node, asset } = info.slice;
+          this.hide();
+          popup.hide();
+          sliceIntoPrompt(node, asset);
+        };
+        pic.append(img, b);
+        el.append(pic);
+      } else el.append(img);
     }
     const title = h("div", "tp-hname tp-htitle");
     title.append(icon(kind), h("span", "", { textContent: info.name }));
@@ -194,6 +233,7 @@ export let suppressPopupUntil = 0;
 export function installInkListeners() {
   document.addEventListener("mousemove", (e) => {
     if (hover.pinned) return;
+    if (hover.el && !hover.el.hidden && hover.el.contains(e.target)) return hover.keep(); // on its way to the card's button
     const ink = e.target instanceof HTMLTextAreaElement ? inkOf(e.target) : null;
     let hit = null;
     if (ink && !popup.open) {
@@ -203,7 +243,7 @@ export function installInkListeners() {
     if (hit) hoverTag(hit, ink);
     else {
       const slotEl = !ink && !popup.open && e.target instanceof Element ? slotElementOf(e.target) : null;
-      if (!(slotEl && hoverPort(slotEl))) hover.hide();
+      if (!(slotEl && hoverPort(slotEl))) hover.hideSoon();
     }
   }, true);
   // Clicking a struck-through (library off), purple (file missing) or unplugged tag pins its card with an action.

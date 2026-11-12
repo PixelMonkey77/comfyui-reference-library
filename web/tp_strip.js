@@ -1,11 +1,11 @@
 // Reference Prompt: the strip of tagged assets, the header, and the @name outputs.
-import { assetKind, getWidget, KINDS, library, mentionsIn, splitTag, tagKey } from "./common.js";
+import { assetKind, getWidget, library, mentionsIn, splitTag, tagKey } from "./common.js";
 import { currentGraph } from "./compat.js";
 import { openAddDialog, toggleLibraryPanel } from "./dialogs.js";
 import { highlightTag, jumpToTag, renderInk, sweepInks } from "./tp_ink.js";
 import { syncInputs } from "./tp_inputs.js";
 import {
-  BATCH_OUTPUT, claimedKeys, enabledKinds, enabledLibs, extraMedia, extraOutputKey, isBatchOutput, KIND_LABEL,
+  BATCH_OUTPUT, claimedKeys, enabledLibs, extraMedia, extraOutputKey, isBatchOutput,
   libToken, OUTPUT_TYPE, outputAsset, outputAssetName, renameOutput, setOutputAsset, syncClaims, unpluggedText,
 } from "./tp_model.js";
 import { restoreTags, snapshotTags } from "./tp_pins.js";
@@ -281,7 +281,7 @@ function markStaleOutputs(node) {
   }
 }
 
-export const headers = new Map(); // node -> { el, toggles: {kind: button}, libs: button, sig }
+export const headers = new Map(); // node -> { el, libs: button, sig }
 
 export function buildHeader(node) {
   const el = h("div", "tp-header");
@@ -294,24 +294,7 @@ export function buildHeader(node) {
     toggleLibraryPanel(libs, node, () => refreshStrip(node));
   };
   el.append(libs);
-  const toggles = {};
-  for (const kind of KINDS) {
-    const b = h("button", "tp-hbtn", { type: "button" });
-    b.append(icon(kind));
-    b.onclick = (e) => {
-      e.stopPropagation();
-      const on = new Set(enabledKinds(node));
-      if (on.has(kind)) on.delete(kind);
-      else on.add(kind);
-      node.properties ??= {};
-      node.properties.tp_kinds = KINDS.filter((k) => on.has(k));
-      node.graph?.change?.(); // marks the workflow as modified
-      refreshHeader(node);
-      if (popup.state?.node === node) popup.reopen(popup.state.editor, node);
-    };
-    toggles[kind] = b;
-    el.append(b);
-  }
+  // (The image / video / audio filters are in the @ list's own header: see tp_popup.js.)
   const add = h("button", "tp-hbtn", { type: "button", title: "Add images, videos or audio to the library" });
   add.append(icon("plus"));
   add.onclick = (e) => {
@@ -319,17 +302,15 @@ export function buildHeader(node) {
     openAddDialog({ node });
   };
   el.append(h("span", "tp-spacer"), add);
-  headers.set(node, { el, toggles, libs, sig: null });
+  headers.set(node, { el, libs, sig: null });
   return el;
 }
 
 function refreshHeader(node) {
   const hd = headers.get(node);
   if (!hd) return;
-  const on = new Set(enabledKinds(node));
   const libsOn = enabledLibs(node);
-  const counts = Object.fromEntries(KINDS.map((k) => [k, library.assets.filter((a) => libsOn.has(a.library) && assetKind(a) === k).length]));
-  const sig = JSON.stringify([[...on], counts, [...libsOn], library.libraries.map((l) => l.name)]);
+  const sig = JSON.stringify([[...libsOn], library.libraries.map((l) => l.name)]);
   if (sig === hd.sig) return;
   hd.sig = sig;
   const total = library.libraries.length;
@@ -338,12 +319,6 @@ function refreshHeader(node) {
   hd.libs.title = total
     ? `${libsOn.size} of ${total} ${total === 1 ? "library" : "libraries"} enabled in this node: ${library.libraries.filter((l) => libsOn.has(l.id)).map((l) => l.name).join(", ") || "none"}. Click to manage.`
     : "No libraries yet. Click to create one.";
-  for (const kind of KINDS) {
-    const b = hd.toggles[kind];
-    b.setAttribute("aria-pressed", String(on.has(kind)));
-    const n = counts[kind];
-    b.title = `${KIND_LABEL[kind]} (${n} in the library): ${on.has(kind) ? "shown in" : "hidden from"} the @ list. Click to toggle.`;
-  }
   // Icon-only buttons: screen readers read the same text as the tooltip.
   for (const b of hd.el.querySelectorAll("button")) if (b.title) b.setAttribute("aria-label", b.title);
 }

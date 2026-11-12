@@ -21,6 +21,11 @@ const ICONS = {
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   replace: '<path d="M14 4c0-1.1.9-2 2-2"/><path d="M20 2c1.1 0 2 .9 2 2"/><path d="M22 8c0 1.1-.9 2-2 2"/><path d="M16 10c-1.1 0-2-.9-2-2"/><path d="m3 7 3 3 3-3"/><path d="M6 10V5c0-1.7 1.3-3 3-3h1"/><rect width="8" height="8" x="2" y="14" rx="2"/>',
   alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+  // A square with a dotted outline: cut out (slice) an area of an image.
+  slice: '<rect x="3.5" y="3.5" width="17" height="17" rx="1.5" stroke-dasharray="2.6 3"/>',
+  zoomIn: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/><path d="M11 8v6"/><path d="M8 11h6"/>',
+  zoomOut: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/><path d="M8 11h6"/>',
+  fit: '<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 15v6h-6"/><path d="M3 9V3h6"/>',
 };
 
 export function icon(name) {

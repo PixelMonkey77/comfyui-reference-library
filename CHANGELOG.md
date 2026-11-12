@@ -4,6 +4,15 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
+## 0.1.8
+
+- **Slices:** hovering a library image's tag shows a dotted-square button that opens the image large. Zoom
+  and pan, mark a rectangle or square, and **Replace with slice**: the area is cut from the full-size file
+  into a new PNG in ComfyUI's input folder, loaded by a new Load Image node plugged into the Reference
+  Prompt's next free image input, and the prompt's tags of that image are replaced by the slice's tag.
+  The library isn't changed.
+- The image / video / audio filters moved from the Reference Prompt's header to the top of the `@` list.
+
 ## 0.1.7
 
 - **Edit library:** the ✎ next to a library in the Libraries menu opens a large dialog instead of just a

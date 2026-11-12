@@ -30,7 +30,7 @@ app.registerExtension({
       const r = onNodeCreated?.apply(this, arguments);
       installStyle();
 
-      // Header (type filters) goes first, above the text box.
+      // Header (Libraries, + Add) goes first, above the text box.
       const hw = this.addDOMWidget("tagged_header", "tagged_header", buildHeader(this), {
         serialize: false,
         hideOnZoom: false,
