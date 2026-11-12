@@ -6,7 +6,8 @@
 //
 //   node tools/screenshots/make_screenshots.mjs [--out DIR] [--resources DIR] [--keep] [--show]
 //
-// Defaults: --out "<repo>/docs/images" (shown in the README), --resources "<repo>/../Resources". Paths to ComfyUI,
+// Defaults: --out "<repo>/docs/images" (shown in the README), --resources "<repo>/../Resources" (the demo
+// images: see DEMO below; flat or in subfolders, found by file name). Paths to ComfyUI,
 // its Python and Chrome are detected for ComfyUI Desktop on Windows; override with the env vars
 // COMFYUI_DIR, COMFYUI_PYTHON, COMFYUI_FRONTEND, CHROME. --keep leaves the temp folder (logs),
 // --show runs Chrome with a window.
@@ -46,14 +47,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log("[screens]", ...a);
 
 // ---------------------------------------------------------------- the demo files
-const files = (sub) => {
-  const dir = path.join(RES, sub);
-  return fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => /\.(png|jpe?g|webp)$/i.test(f)).sort().map((f) => path.join(dir, f)) : [];
+// Which demo image plays which part, by file name (without extension). The files may sit anywhere under
+// --resources (flat, or in subfolders).
+const DEMO = {
+  first: ["frog_warrior", "rooster_cowboy", "zombie_chef"], // the first library: several files at once
+  single: "temple_ruin", // then one file, named @Temple in the dialog
+  more: { Environments: ["forest", "temple_02"], Items: ["golden_coin", "red_gem"] }, // two more libraries
+  outside: "forest_02", // a file outside the library (Load Image), copied as Night_Forest.png
 };
-const CHARACTERS = files("Characters");
-const ENVIRONMENTS = files("Environments");
-const ICONS = files("Icons");
-const pickFile = (list, stemName) => list.find((p) => path.parse(p).name.toLowerCase() === stemName.toLowerCase()) ?? list[0];
+function walk(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(path.join(dir, e.name))
+    : /\.(png|jpe?g|webp)$/i.test(e.name) ? [path.join(dir, e.name)] : []).sort();
+}
+const ALL = walk(RES);
+const pickFile = (stemName) => ALL.find((p) => path.parse(p).name.toLowerCase() === stemName.toLowerCase()) ?? null;
+const pickFiles = (names) => names.map(pickFile).filter(Boolean);
+const CHARACTERS = pickFiles(DEMO.first);
 
 // ---------------------------------------------------------------- temp ComfyUI
 function prepareBase() {
@@ -64,7 +74,7 @@ function prepareBase() {
   fs.cpSync(path.join(REPO, "web"), path.join(pack, "web"), { recursive: true });
   for (const d of ["input", "output", "temp", path.join("user", "default")]) fs.mkdirSync(path.join(base, d), { recursive: true });
   // A file outside the library for the Load Image step (a copy, under a name the library doesn't use).
-  const outside = pickFile(ENVIRONMENTS, "Cursed_Forest");
+  const outside = pickFile(DEMO.outside);
   if (outside) fs.copyFileSync(outside, path.join(base, "input", "Night_Forest.png"));
   // A clean, quiet UI: Nodes 2.0, dark theme, no first-run popups, no spellcheck squiggles.
   fs.writeFileSync(path.join(base, "user", "default", "comfy.settings.json"), JSON.stringify({
@@ -78,7 +88,7 @@ function prepareBase() {
   // Answers for the "native file dialog", in the order the flows open it.
   const answers = [
     CHARACTERS, // first library: several files at once
-    [pickFile(ENVIRONMENTS, "Ancient_Temple")], // one file, named in the dialog
+    [pickFile(DEMO.single)].filter(Boolean), // one file, named in the dialog
   ];
   const fake = path.join(base, "fake_dialog.json");
   fs.writeFileSync(fake, JSON.stringify(answers));
@@ -108,6 +118,7 @@ async function startComfy(base, fake) {
 async function startChrome(base) {
   const proc = spawn(CHROME, [`--remote-debugging-port=${CDP_PORT}`, `--user-data-dir=${path.join(base, "chrome")}`,
     ...(flag("show") ? [] : ["--headless=new"]), "--no-first-run", "--no-default-browser-check",
+    ...(process.platform === "linux" && process.getuid?.() === 0 ? ["--no-sandbox"] : []), // root in a container
     "--window-size=1500,1000", "--hide-scrollbars", "--disable-extensions", "about:blank"], { stdio: "ignore" });
   for (let i = 0; i < 60; i++) {
     try {
@@ -206,7 +217,7 @@ window.__shot = {
   },
   clear() { document.getElementById("shot-notes")?.remove(); },
   /** A callout: label at (dx, dy) from the target's edge on "side", with a curved arrow to the target
-   *  (to its "tip" edge: by default the one facing the label). */
+   *  (to its "tip" edge: "left" / "right" / "top" / "bottom"; by default the one facing the label). */
   note({ target, text, side = "right", dx = 70, dy = 0, color = "#f5a524", size = 24, from = null, bend = 28, tip = null }) {
     const r = this.rect(target);
     const f = this.rect(from) ?? r; // the label is placed beyond this element's edge (default: the target)
@@ -214,7 +225,7 @@ window.__shot = {
     const l = this.layer();
     const lab = document.createElement("div");
     lab.textContent = text;
-    lab.style.cssText = "position:absolute;white-space:pre;font:800 " + size + "px/1.1 'Segoe UI Black','Segoe UI',system-ui,sans-serif;"
+    lab.style.cssText = "position:absolute;white-space:pre;font:900 " + size + "px/1.1 'Segoe UI Black','Inter Display','Inter','Segoe UI',system-ui,sans-serif;"
       + "color:" + color + ";text-shadow:0 2px 0 #000,0 0 8px rgba(0,0,0,.85);letter-spacing:.2px";
     l.append(lab);
     const w = lab.offsetWidth, h = lab.offsetHeight;
@@ -226,6 +237,8 @@ window.__shot = {
     else { lx = cx - w / 2 + dx; ly = f.y - Math.abs(dy || 60) - h; ax = lx + w / 2; ay = ly + h + 6; tx = cx; ty = r.y - 6; }
     if (tip === "right") { tx = r.x + r.width + 6; ty = cy; }
     else if (tip === "left") { tx = r.x - 6; ty = cy; }
+    else if (tip === "top") { tx = cx; ty = r.y - 6; }
+    else if (tip === "bottom") { tx = cx; ty = r.y + r.height + 6; }
     lab.style.left = lx + "px";
     lab.style.top = ly + "px";
     const mx = (ax + tx) / 2, my = (ay + ty) / 2;
@@ -314,8 +327,7 @@ async function walkthrough() {
   // 1. The node
   await shot("01_reference_prompt_node", [NODE], [
     { target: { sel: ".tp-libs" }, text: "Your libraries", side: "left", from: NODE, dx: 50, dy: 40 },
-    { target: { sel: ".tp-hbtn", index: 2 }, text: "Show images / videos / audio in the @ list", side: "top", from: NODE, dx: 140, dy: 30 },
-    { target: { sel: ".tp-hbtn", index: 4 }, text: "Add files", side: "right", from: NODE, dx: 50 },
+    { target: { sel: ".tp-hbtn", index: 1 }, text: "Add files", side: "right", from: NODE, dx: 50 },
   ]);
 
   // 2. Create the first library
@@ -349,7 +361,7 @@ async function walkthrough() {
   await ev(() => window.__shot.setText(""));
 
   // 5. One file: preview and its name
-  await click({ sel: ".tp-hbtn", index: 4 });
+  await click({ sel: ".tp-hbtn", index: 1 });
   await sleep(400);
   await click(btn("Pick files"));
   await sleep(1500);
@@ -366,7 +378,7 @@ async function walkthrough() {
 
   // 6. Rename (display name)
   await click(TA);
-  await type("@Jos");
+  await type("@roost");
   await sleep(1500);
   await hover({ sel: ".tp-popup .tp-item" });
   await sleep(300);
@@ -376,7 +388,7 @@ async function walkthrough() {
   await sleep(400);
   await click({ sel: ".tpm .tpm-input" });
   await key("a", 2);
-  await type("Sir_Josef");
+  await type("Rooster");
   await sleep(300);
   await shot("06_change_display_name", [MODAL], [
     { target: { sel: ".tpm .tpm-input" }, text: "Rename it: your prompts follow", side: "right", from: MODAL, dx: 50 },
@@ -386,23 +398,23 @@ async function walkthrough() {
   await sleep(1000);
 
   // More demo files for a fuller prompt (no screenshots): two more libraries
-  await ev(async (env, icons) => {
+  await ev(async (more) => {
     const { library } = await import("/extensions/comfyui-reference-library/common.js");
-    if (env.length) await library.add({ new_library: "Environments" }, env.map((p) => ({ path: p })));
-    if (icons.length) await library.add({ new_library: "Icons" }, icons.map((p) => ({ path: p })));
+    for (const [name, list] of Object.entries(more)) if (list.length) await library.add({ new_library: name }, list.map((p) => ({ path: p })));
     window.__shot.setText("");
-  }, ENVIRONMENTS.filter((p) => !/ancient_temple/i.test(p)), ICONS);
+  }, Object.fromEntries(Object.entries(DEMO.more).map(([k, v]) => [k, pickFiles(v)])));
   await sleep(1200);
 
   // 7. Mention: type @ and a few letters
   await click(TA);
-  await type("@Al");
+  await type("@fro");
   await sleep(1500);
   await shot("07_mention_an_asset", [NODE, POPUP], [
-    { target: { sel: ".tp-popup .tp-item" }, text: "Type @ and a few letters,\nEnter to insert", side: "right", from: NODE, dx: 50 },
+    { target: { sel: ".tp-popup .tp-item" }, text: "Type @ and a few letters,\nEnter to insert", side: "right", from: NODE, dx: 50, dy: 40 },
+    { target: { sel: ".tp-popup .tp-kbtn", index: 1 }, text: "Show or hide images,\nvideos, audio", side: "right", tip: "top", from: NODE, dx: 50, dy: -150, bend: 40 },
   ]);
   await key("Enter");
-  await type("and @Sir_Josef search the @Temple for the lost @Gem while @Joe waits on the @Beach");
+  await type("and @Rooster search the @Temple for the lost @red_gem while @zombie_chef cooks in the @forest");
   await sleep(300);
   await key("Escape");
   await sleep(1800);
@@ -419,11 +431,15 @@ async function walkthrough() {
   await hover({ sel: "{node} .tp-ink", index: 2 });
   await sleep(900);
   await shot("09_hover_a_tag", [NODE, { sel: ".tp-hover" }], [
-    { target: { sel: ".tp-hover" }, text: "Hover a tag for a preview", side: "right", from: NODE, dx: 50 },
+    { target: { sel: ".tp-hover" }, text: "Hover a tag for a preview", side: "right", from: NODE, dx: 50, dy: 60 },
+    { target: { sel: ".tp-hover .tp-hslice" }, text: "Slice: use part of the image", side: "right", from: NODE, dx: 50, dy: -60, bend: -20 },
   ]);
 
+  await mouse("mouseMoved", 5, 5);
+  await sleep(900);
+
   // 10. Click a thumbnail: its tag lights up
-  const gem = await ev(() => [...document.querySelectorAll(window.__shot.nodeSel + " .tp-chip")].findIndex((c) => c.dataset.tag === "@Gem"));
+  const gem = await ev(() => [...document.querySelectorAll(window.__shot.nodeSel + " .tp-chip")].findIndex((c) => c.dataset.tag === "@red_gem"));
   await click({ sel: "{node} .tp-chip", index: Math.max(0, gem) });
   await sleep(120);
   await shot("10_click_a_thumbnail_to_find_its_tag", [NODE], [
@@ -500,7 +516,7 @@ async function walkthrough() {
   await ev(async () => {
     const app = window.app;
     const node = window.__shot.node;
-    app.canvas.ds.offset = [560, 190];
+    app.canvas.ds.offset = [640, 190];
     const li = window.LiteGraph.createNode("LoadImage");
     app.graph.add(li);
     li.pos = [-470, 120];
@@ -509,7 +525,7 @@ async function walkthrough() {
     app.canvas.setDirty(true, true);
     window.__shot.sels.li = `.lg-node[data-node-id="${li.id}"]`;
     await new Promise((r) => setTimeout(r, 1500));
-    window.__shot.setText("@Alex explores the @Night_Forest at dusk");
+    window.__shot.setText("@frog_warrior explores the @Night_Forest at dusk");
   });
   await sleep(2200);
   const LI = { sel: "{li}" };
@@ -526,6 +542,108 @@ async function walkthrough() {
   await shot("12_place_it_last", [NODE], [
     { target: { sel: "{node} .tp-firstlast" }, text: "Click it: Last ⇥ puts it after the library files", side: "bottom", tip: "right", from: NODE, dx: 160, dy: 30 },
   ]);
+
+  // The big dialogs need room around them for the callouts.
+  await ev(() => {
+    const li = window.app.graph._nodes.find((n) => n.type === "LoadImage");
+    if (li) window.app.graph.remove(li);
+    window.__shot.setText("@frog_warrior and @Rooster search the @Temple for the lost @red_gem");
+  });
+  await sleep(800);
+  await cdp.send("Emulation.setDeviceMetricsOverride", { width: 1900, height: 1000, deviceScaleFactor: 2, mobile: false });
+  await ev(() => document.head.append(Object.assign(document.createElement("style"),
+    { id: "shot-backdrop", textContent: ".tpm-overlay{background:#121212!important}" })));
+  await sleep(800);
+
+  // 14. Edit a library: the ✎ next to it in the Libraries menu
+  await click({ sel: ".tp-libs" });
+  await click({ sel: ".tpl-row button[title^='Edit library']" });
+  await sleep(1200);
+  await ev(() => {
+    const s = document.querySelector(".tlm-size input");
+    s.value = 152;
+    s.dispatchEvent(new Event("input"));
+  });
+  await sleep(300);
+  await click({ sel: ".tlm-tile", text: "Rooster" });
+  await sleep(1200);
+  const LM = { sel: ".tpm.tlm" };
+  await shot("14_edit_library", [LM], [
+    { target: { sel: ".tlm-top .tpm-input" }, text: "Rename the library", side: "left", from: LM, dx: 40 },
+    { target: { sel: ".tlm-tile", text: "frog" }, text: "All its files:\nclick one to select it", side: "left", from: LM, dx: 40, dy: 40 },
+    { target: { sel: ".tlm-sizerow svg.tlm-big" }, text: "Thumbnail size", side: "top", from: LM, dx: -40, dy: 26 },
+    { target: { sel: ".tlm-kind", index: 1 }, text: "Filter by type or name", side: "top", from: LM, dx: 140, dy: 26 },
+    { target: { sel: ".tlm-props .tlm-preview" }, text: "Its preview,\n@name, file\nand path", side: "right", from: LM, dx: 40 },
+    { target: { sel: ".tlm-actions" }, text: "Replace its file,\nor remove it", side: "right", from: LM, dx: 40, dy: 20 },
+  ]);
+
+  // 15. Several at once
+  await click({ sel: ".tlm-tile", text: "frog" });
+  await ev(() => {
+    for (const name of ["zombie", "Temple"]) {
+      const t = [...document.querySelectorAll(".tlm-tile")].find((e) => e.textContent.startsWith(name));
+      t?.dispatchEvent(new MouseEvent("click", { bubbles: true, ctrlKey: true }));
+    }
+  });
+  await sleep(1000);
+  await shot("15_select_several", [LM], [
+    { target: { sel: ".tlm-tile.tlm-sel", index: 0 }, text: "⌘/Ctrl-click or Shift-click\nto select several…", side: "left", from: LM, dx: 40, dy: 40 },
+    { target: { sel: ".tlm-remove" }, text: "…and remove\nthem together", side: "right", from: LM, dx: 40 },
+  ]);
+  await click(btn("Done"));
+  await sleep(600);
+
+  // 16. Slice: hover a tag, click the dotted square, mark an area
+  await mouse("mouseMoved", 5, 5);
+  await hover({ sel: "{node} .tp-ink", index: 0 });
+  await sleep(900);
+  await click({ sel: ".tp-hover .tp-hslice" });
+  for (let i = 0; i < 40 && await ev(() => !!document.querySelector(".tsl-msg") || !document.querySelector(".tsl")); i++) await sleep(250);
+  await sleep(600);
+  const img = await ev(() => {
+    const r = document.querySelector(".tsl-img").getBoundingClientRect();
+    return { x: r.x, y: r.y, w: r.width, h: r.height };
+  });
+  const at = (fx, fy) => [img.x + fx * img.w, img.y + fy * img.h];
+  const [ax, ay] = at(0.29, 0.05);
+  const [bx, by] = at(0.71, 0.47);
+  await mouse("mouseMoved", ax, ay);
+  await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x: ax, y: ay, button: "left", clickCount: 1 });
+  for (let i = 1; i <= 8; i++) {
+    await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: ax + (bx - ax) * i / 8, y: ay + (by - ay) * i / 8, button: "left", buttons: 1 });
+  }
+  await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: bx, y: by, button: "left", clickCount: 1 });
+  await mouse("mouseMoved", 5, 5);
+  await sleep(500);
+  const SL = { sel: ".tpm.tsl" };
+  await shot("16_slice_an_image", [SL], [
+    { target: { sel: ".tsl-sel" }, text: "Drag to mark an area\n(Shift: square)", side: "left", from: SL, dx: 40 },
+    { target: { sel: ".tsl-bar button", index: 0 }, text: "Zoom and pan\nto be precise", side: "left", from: SL, dx: 40, dy: -20, bend: -20 },
+    { target: { sel: ".tsl-size" }, text: "Its size in\nthe file's pixels", side: "right", from: SL, dx: 40, dy: 40 },
+    { target: btn("Replace with slice"), text: "Use it instead\nof the image", side: "right", from: SL, dx: 40, dy: -40 },
+  ]);
+
+  // 17. The slice is plugged in, and the prompt names it
+  await click(btn("Replace with slice"));
+  await sleep(1800);
+  await ev(() => document.getElementById("shot-backdrop")?.remove());
+  await cdp.send("Emulation.setDeviceMetricsOverride", { width: 1500, height: 1000, deviceScaleFactor: 2, mobile: false });
+  await ev(async () => {
+    document.querySelectorAll(".p-toast-close-button").forEach((b) => b.click());
+    const app = window.app;
+    app.canvas.ds.offset = [700, 230];
+    app.canvas.setDirty(true, true);
+    const sl = app.graph._nodes.find((n) => n.type === "LoadImage");
+    window.__shot.sels.sl = `.lg-node[data-node-id="${sl.id}"]`;
+    await new Promise((r) => setTimeout(r, 1500));
+  });
+  await mouse("mouseMoved", 5, 5);
+  await sleep(1200);
+  const SLN = { sel: "{sl}" };
+  await shot("17_slice_plugged_in", [NODE, SLN], [
+    { target: SLN, text: "A Load Image with the slice,\nplugged into image_1", side: "top", dx: 40, dy: 40 },
+    { target: { sel: "{node} .tp-ink", index: 0 }, text: "Its tag replaced\n@frog_warrior", side: "top", from: NODE, dx: 150, dy: 24 },
+  ]);
 }
 
 // ---------------------------------------------------------------- main
@@ -533,7 +651,8 @@ async function main() {
   for (const [what, p] of [["ComfyUI", path.join(COMFY, "main.py")], ["Python", PYTHON], ["frontend", FRONTEND], ["Chrome", CHROME ?? ""], ["resources", RES]]) {
     if (!p || !fs.existsSync(p)) throw new Error(`${what} not found: ${p || "(set the env var)"}`);
   }
-  if (!CHARACTERS.length) throw new Error(`no images in ${path.join(RES, "Characters")}`);
+  const missing = [...DEMO.first, DEMO.single, DEMO.outside, ...Object.values(DEMO.more).flat()].filter((n) => !pickFile(n));
+  if (missing.length) throw new Error(`demo images not found in ${RES}: ${missing.join(", ")}`);
   fs.mkdirSync(OUT, { recursive: true });
   const { base, fake } = prepareBase();
   log("temp folder", base);

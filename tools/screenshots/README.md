@@ -7,13 +7,23 @@ redone after every UI change with one command:
 node tools/screenshots/make_screenshots.mjs
 ```
 
-It writes `00_…png` to `13_…png` into `docs/images/` (the images the main README shows) using the demo files in
-`../Resources/{Characters,Environments,Icons}`. Options:
+It writes `00_…png` to `17_…png` into `docs/images/` (the images the main README shows) using the demo images in
+`../Resources` (next to the repo). They are found by file name, flat or in subfolders; which file plays which
+part is set in `DEMO` at the top of the script:
+
+| Part | Files |
+|---|---|
+| First library (picked several at once) | `frog_warrior`, `rooster_cowboy`, `zombie_chef` |
+| One file, named in the dialog (`@Temple`) | `temple_ruin` |
+| Two more libraries | `Environments`: `forest`, `temple_02`; `Items`: `golden_coin`, `red_gem` |
+| A file outside the library (Load Image) | `forest_02`, copied as `Night_Forest.png` |
+
+Options:
 
 | Option | Default | |
 |---|---|---|
 | `--out DIR` | `<repo>/docs/images` | where the PNGs go (existing files with the same names are replaced) |
-| `--resources DIR` | `<repo>/../Resources` | demo files: `Characters/` (first library, several at once), `Environments/` (`Ancient_Temple` is added on its own), `Icons/` |
+| `--resources DIR` | `<repo>/../Resources` | the demo images (see above) |
 | `--port N` | `8190` | port of the temporary ComfyUI (Chrome's debug port is N+1000) |
 | `--keep` | | keep the temp folder (ComfyUI log, settings) for debugging |
 | `--show` | | run Chrome with a visible window |
@@ -30,9 +40,11 @@ It writes `00_…png` to `13_…png` into `docs/images/` (the images the main RE
 
 ## Requirements and paths
 
-Node 22 or newer, Chrome (or Edge), and ComfyUI Desktop on Windows. Other setups: set
-`COMFYUI_DIR` (folder with `main.py`), `COMFYUI_PYTHON`, `COMFYUI_FRONTEND` (frontend folder, Desktop:
-`web_custom_versions/desktop_app`) and `CHROME`.
+Node 22 or newer, Chrome (or Edge, or Chromium), and ComfyUI Desktop on Windows. Other setups (macOS, Linux, a
+git checkout of ComfyUI): set `COMFYUI_DIR` (folder with `main.py`), `COMFYUI_PYTHON`, `COMFYUI_FRONTEND`
+(frontend folder; Desktop: `web_custom_versions/desktop_app`, a pip install:
+`site-packages/comfyui_frontend_package/static`) and `CHROME`. Callouts use Segoe UI Black, or Inter Display
+where that isn't installed.
 
 ## Changing the walkthrough
 

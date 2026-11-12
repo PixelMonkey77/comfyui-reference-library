@@ -23,12 +23,14 @@ and that's it.
 </p>
 
 When you queue, every file you tagged is loaded and plugged into the model's image (video, audio)
-inputs for you, in the order shown under the text, and `@Alex` becomes `image 1` in the prompt the
+inputs for you, in the order shown under the text, and `@frog_warrior` becomes `image 1` in the prompt the
 model receives. Add a tag, and one more image goes along; remove it, and it's gone. The canvas stays
 the same two nodes, however many references you use.
 
 - **Asset libraries:** named collections of your files, referenced in place, shared by all workflows.
 - **`@` autocomplete** with thumbnails; tags colored by state; hover a tag for a preview.
+- **Manage a library** in one window: preview, rename, replace or remove its files, several at once.
+- **Slices:** cut part of a library image (a face, a prop) and use it instead, without touching the library.
 - **Images, videos and audio**, plus [files from other nodes](#files-that-arent-in-a-library)
   (Load Image, …), placed before or after the library files.
 
@@ -41,6 +43,7 @@ the same two nodes, however many references you use.
 - [Supported model nodes](#supported-model-nodes)
 - [Older models with one image input](#older-models-with-one-image-input)
 - [Files that aren't in a library](#files-that-arent-in-a-library)
+- [Edit a library: manage its files](#edit-a-library-manage-its-files)
 - [Slices: use part of an image](#slices-use-part-of-an-image)
 - [Outputs: every tagged file, and a batch](#outputs-every-tagged-file-and-a-batch)
 - [Libraries in detail](#libraries-in-detail)
@@ -234,8 +237,8 @@ own. That's what its **`images`** output is for. Connect two wires:
 That's it. When you queue:
 
 - The `images` output becomes a batch of every tagged image, in the order of the numbers on the outputs
-  (`@Alex (1)` first, `@Sir_Josef (2)` second, …) and under the thumbnails.
-- The prompt is rewritten to match: `@Alex` becomes "image 1", `@Sir_Josef` "image 2", and so on.
+  (`@frog_warrior (1)` first, `@Rooster (2)` second, …) and under the thumbnails.
+- The prompt is rewritten to match: `@frog_warrior` becomes "image 1", `@Rooster` "image 2", and so on.
 - A batch needs one size for all images, so each image is **fitted inside the size of image 1 and padded**
   (black bars). Nothing is cropped away.
 
@@ -287,29 +290,70 @@ Good to know:
   works as a tag.
 - It also gets its own output on the Reference Prompt, like library files: see [Outputs](#outputs-every-tagged-file-and-a-batch).
 
+## Edit a library: manage its files
+
+Open **Libraries** in the node's header and click **✎** next to a library. One window shows the whole
+library:
+
+<img src="docs/images/14_edit_library.png" width="900" alt="The Edit library window: the library's name at the top, its files in a grid, and the selected file's properties on the right">
+
+- **The library's name** at the top: change it and click **Rename** (tags that name the library, like
+  `@Game_Assets/Rooster`, follow).
+- **All its files** in a scrollable grid. The **Thumbnail size** slider makes them bigger or smaller; the
+  image / video / audio buttons and the filter field narrow the list down. Files that are missing on disk
+  are marked purple.
+- **The selected file** on the right: a large preview (videos and audio play), its `@name`, its file name
+  and the full path on your disk (**Copy** puts it on the clipboard).
+  - **Rename:** type a new `@name` and press **Enter** or **Rename**. Tags in your prompts follow.
+  - **Replace file…** points it at another file of the same type (or finds a moved file). Its `@name`
+    stays, so your prompts keep working.
+  - **Remove from library** forgets it; the file itself stays on your disk.
+- **+ Add files…** adds more files to this library.
+
+**Several at once.** ⌘/Ctrl-click or Shift-click files (or Shift+arrows, ⌘/Ctrl+A for all shown) to select
+several, then remove them together. Renaming, replacing, copying the path and the preview work on one file
+at a time, so they're switched off while several are selected.
+
+<img src="docs/images/15_select_several.png" width="900" alt="Three files selected in the Edit library window, with Remove 3 assets from library">
+
+Every change is saved straight away. From the keyboard: arrows move through the grid, Space adds or takes
+out one, **Delete** removes, **F2** or **Enter** renames.
+
 ## Slices: use part of an image
 
-Need only a face, a logo or a prop from a library image? Hover its tag and click the **dotted square** in the
-top-right corner of the preview. The image opens large:
+Need only a face, a prop or a corner of a library image? Hover its tag in the prompt and click the
+**dotted square** in the top-right corner of the preview (see [Hover a tag](#8-hover-a-tag)). The image
+opens large:
 
-- **Drag** to mark an area; drag inside it to move it, the handles resize it. **Shift** (or **Square**)
-  keeps it square. **Select all** / **Clear**, arrow keys nudge it.
-- **Zoom** with the wheel or a pinch (or **−** / **+**, **Fit**, **1:1**); **pan** with Space+drag or the
-  middle mouse button. The selection's size is shown in the file's own pixels.
+<img src="docs/images/16_slice_an_image.png" width="900" alt="The slicer: the frog warrior's head marked with a square selection">
 
-**Replace with slice** cuts the area out of the full-size file and saves it as a new PNG in ComfyUI's
-`input` folder (`Alex_slice_01.png`, `Alex_slice_02.png`, …). A **Load Image** node ("Slice of @Alex") is
-added to the left of the Reference Prompt and plugged into its next free `image_N` input, and every tag of
-that image in this prompt (`@Alex`, `@Characters/Alex`) becomes the slice's tag (`@Alex_slice_01`). From
-there it is a [file that isn't in a library](#files-that-arent-in-a-library): First/Last, its own output,
-and so on. The library and its file are never changed; delete the Load Image node and put the tag back to
-undo it.
+- **Drag** to mark an area. Drag inside it to move it; the handles resize it. Hold **Shift** (or tick
+  **Square**) to keep it square. **Select all**, **Clear**, and the arrow keys nudge it.
+- **Zoom** with the mouse wheel or a trackpad pinch (or **−** / **+**, **Fit**, **1:1**), and **pan** with
+  Space+drag or the middle mouse button.
+- The selection's size is shown in the file's own pixels, so you know what the model will get.
+
+Click **Replace with slice**:
+
+<img src="docs/images/17_slice_plugged_in.png" width="760" alt="A Load Image node named Slice of @frog_warrior plugged into image_1, and the prompt now says @frog_warrior_slice_01">
+
+1. The area is cut out of the **full-size file** and saved as a new PNG in ComfyUI's `input` folder:
+   `frog_warrior_slice_01.png`, then `_02`, … for the next ones.
+2. A **Load Image** node, "Slice of @frog_warrior", is added next to the Reference Prompt and plugged into
+   its next free `image_N` input.
+3. Every tag of that image in this prompt (`@frog_warrior`, `@Game_Assets/frog_warrior`) becomes the
+   slice's tag, `@frog_warrior_slice_01`.
+
+From there the slice is a [file that isn't in a library](#files-that-arent-in-a-library): it has its own
+thumbnail and output, and First/Last decides where it goes. **The library isn't changed**: the original file
+stays in it, untouched, for your other prompts. To go back, delete the Load Image node and type the original
+tag again.
 
 ## Outputs: every tagged file, and a batch
 
 Next to `text`, the Reference Prompt has an output for **every tagged file**, library files and plugged-in
 files alike, plus one **`images`** output with all tagged images as a batch. The number after each name is
-where that file goes: **`@Coin (1)`** is `image_1` (`(2)` is `image_2`, …). The numbers follow First/Last
+where that file goes: **`@frog_warrior (1)`** is `image_1` (`(2)` is `image_2`, …). The numbers follow First/Last
 and match the numbers under the thumbnails and the "image 1, image 2…" in the prompt.
 
 The `images` output is made for models with a single `images` input (Nano Banana Pro, …): see
@@ -321,7 +365,7 @@ IP-Adapter, …
 
 **Outputs follow the tags.** When a tag leaves the text, or its plugged-in file is unplugged or swapped for
 another file, its output goes away. If you've wired it to something, the wire is never cut for you: the
-output stays, marked with the reason (`@Coin ⚠ not in text`, `⚠ unplugged`, `⚠ file changed`, …), and the
+output stays, marked with the reason (`@Rooster ⚠ not in text`, `⚠ unplugged`, `⚠ file changed`, …), and the
 queue is refused until you put the tag or file back or remove that wire (the label is shown in red). So a model never gets an image the
 prompt doesn't name.
 
@@ -331,18 +375,12 @@ prompt doesn't name.
   ComfyUI. Web links, cloud storage links (Google Drive, Dropbox, …) and Comfy Cloud aren't supported.
   Libraries also aren't shared: a workflow opened on another computer finds its tags only if that
   computer has a library with the same names. Sharing libraries is planned.
-- **Several libraries.** A plain `@Biscuit` means the first enabled library that has it;
-  `@Library_02/Biscuit` names the library (typing `@Library_02/` in the list shows only that library).
+- **Several libraries.** A plain `@Rooster` means the first enabled library that has it;
+  `@Library_02/Rooster` names the library (typing `@Library_02/` in the list shows only that library).
 - **Per node:** switch libraries on or off in each node's **Libraries** menu, which also edits and
   deletes libraries.
-- **Edit a library:** click **✎** next to it in the **Libraries** menu. Rename the library at the top;
-  below, all its files in a grid (filter them by type with the image / video / audio buttons, or by name;
-  the **Thumbnail size** slider sets how big they are). Select one to see its preview, `@name`, file name and full path on the right, and to rename it,
-  **Replace file…** (same type; its name and tags stay) or **Remove from library**. Select several
-  (⌘/Ctrl-click, Shift-click, Shift+arrows, ⌘/Ctrl+A) to remove them all at once; renaming, replacing,
-  copying the path and the preview need a single asset. **+ Add files…** adds more. Missing files are
-  marked purple: replace them to point at their new location. Arrow keys move through the grid, Space
-  adds or takes out one, **Delete** removes, **F2** or **Enter** renames. Changes are saved straight away.
+- **Edit a library:** click **✎** next to it in the **Libraries** menu: see
+  [Edit a library](#edit-a-library-manage-its-files).
 - **Tags follow changes.** Renaming, replacing or removing an asset, or deleting or switching a
   library, keeps every tag in the open workflow on its file (renames follow; a removed file's tag
   turns red).
