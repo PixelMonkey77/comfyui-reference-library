@@ -413,7 +413,7 @@ prompt doesn't name.
 
 A workflow stores `@names`, not files, so it needs its libraries on every computer it runs on.
 
-<img src="docs/images/18_export_and_import.png" width="720" alt="The Libraries menu: an export button next to each library, and Import library… at the bottom">
+<img src="docs/images/18_export_and_import.png" width="560" alt="The Libraries menu: an export button next to each library, and Import library… at the bottom">
 
 **Export:** in a Reference Prompt's **Libraries** menu, click the export button (arrow out of a tray) next
 to a library. A list of all your libraries opens with that one ticked; tick any others that should travel
@@ -421,7 +421,7 @@ with it. **Choose folder and export…** then opens your system's folder dialog 
 and the ticked libraries are saved there together as one zip: `<Library name>.zip` for a single library,
 `Reference_Libraries.zip` for several. An existing zip is never overwritten (`<name>_2.zip`, …).
 
-<img src="docs/images/19_export_libraries.png" width="560" alt="The export dialog: a list of libraries with checkboxes, and Choose folder and export…">
+<img src="docs/images/19_export_libraries.png" width="760" alt="The export dialog: a list of libraries with checkboxes, and Choose folder and export…">
 
 The zip holds a copy of every file plus the libraries' and files' names. No folder names from your disk are
 in it. Files that are missing on disk are left out, and the notice names them.
