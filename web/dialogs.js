@@ -1,5 +1,6 @@
 // Library dialogs: Add (pick library, pick files, name a single file), Edit an asset (rename /
-// replace its file / remove), and the per-node Libraries dropdown (toggle, edit, delete). Editing a
+// replace its file / remove), and the per-node Libraries dropdown (toggle, edit, export, delete,
+// import). Editing a
 // library (rename it, manage its assets) is lib_manager.js.
 import { KINDS, assetKind, formatDuration, kindOfPath, library, stem, tagName, toast } from "./common.js";
 import { openLibraryManager } from "./lib_manager.js";
@@ -353,6 +354,148 @@ const PANEL_CSS = `
 .tpl-new svg{width:14px;height:14px}
 `;
 
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const someNames = (names) => names.slice(0, 5).join(", ") + (names.length > 5 ? `, and ${names.length - 5} more` : "");
+
+const EXPORT_CSS = `
+.tpx-list{display:flex;flex-direction:column;max-height:min(46vh,340px);overflow:auto;overscroll-behavior:contain;
+  border:1px solid var(--secondary-background,#262729);border-radius:8px;padding:4px}
+.tpx-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer}
+.tpx-row:hover{background:var(--secondary-background,#262729)}
+.tpx-row input{width:15px;height:15px;margin:0;flex:none;cursor:pointer;accent-color:var(--base-foreground,#fff)}
+.tpx-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tpx-count{color:var(--muted-foreground,#8a8a8a);font-size:12px;white-space:nowrap}
+.tpx-count.tpx-warn{color:var(--tp-tag-bad,#ff6b6b)}
+`;
+const EXPORT_LABEL = "Choose folder and export…";
+
+/**
+ * Export dialog: every library with a checkbox, `first` (the one whose export button was clicked)
+ * ticked. The ticked libraries go into one zip, in a folder picked in the server's folder dialog.
+ */
+export function openExportDialog(first) {
+  installUiStyle();
+  if (!document.getElementById("tpx-style")) {
+    document.head.append(Object.assign(document.createElement("style"), { id: "tpx-style", textContent: EXPORT_CSS }));
+  }
+  const picked = new Set(first ? [first.id] : []);
+  const list = h("div", "tpx-list");
+  const status = h("div", "tpm-note");
+  const error = h("div", "tpm-error");
+  const boxes = new Map(); // library id -> its checkbox
+  const chosen = () => library.libraries.filter((l) => picked.has(l.id));
+  let ctl = null;
+  const sync = () => {
+    const libs = chosen();
+    const files = libs.reduce((n, l) => n + l.count, 0);
+    status.textContent = !libs.length ? "Tick at least one library."
+      : `${plural(libs.length, "library").replace("librarys", "libraries")}, ${plural(files, "file")}, in one zip`
+        + ` (${libs.length === 1 ? `${libs[0].name}.zip` : "Reference_Libraries.zip"}).`;
+    const b = ctl?.button(EXPORT_LABEL);
+    if (b) b.disabled = !libs.length;
+  };
+  for (const lib of library.libraries) {
+    const missing = library.assets.filter((a) => a.library === lib.id && a.exists === false).length;
+    const row = h("label", "tpx-row");
+    const box = h("input", "", { type: "checkbox", checked: picked.has(lib.id) });
+    box.onchange = () => {
+      if (box.checked) picked.add(lib.id);
+      else picked.delete(lib.id);
+      error.textContent = "";
+      sync();
+    };
+    boxes.set(lib.id, box);
+    row.append(box, h("span", "tpx-name", { textContent: lib.name, title: lib.name }),
+      h("span", `tpx-count${missing ? " tpx-warn" : ""}`, {
+        textContent: plural(lib.count, "file") + (missing ? `, ${missing} missing` : ""),
+        title: missing ? "Files missing on disk are left out of the export." : "",
+      }));
+    list.append(row);
+  }
+  const setAll = (on) => {
+    for (const [id, box] of boxes) {
+      box.checked = on;
+      if (on) picked.add(id);
+      else picked.delete(id);
+    }
+    error.textContent = "";
+    sync();
+  };
+  const run = async (c) => {
+    const libs = chosen();
+    if (!libs.length) return;
+    error.textContent = "";
+    status.textContent = "Choose a folder in the window that opened (it may be behind ComfyUI). Large libraries take a moment to copy.";
+    c.busy(true);
+    let done;
+    try {
+      done = await library.exportLibraries(libs.map((l) => l.id));
+    } catch (e) {
+      c.busy(false);
+      sync();
+      error.textContent = `Export failed: ${e.message}`;
+      return;
+    }
+    c.busy(false);
+    sync();
+    if (!done) return; // folder dialog cancelled: the selection stays
+    c.close();
+    const files = done.libraries.reduce((n, l) => n + l.files, 0);
+    const skipped = done.libraries.flatMap((l) => l.skipped.map((name) => (done.libraries.length > 1 ? `${l.name}/${name}` : name)));
+    const parts = [`Exported ${someNames(done.libraries.map((l) => l.name))} (${plural(files, "file")}) to ${done.path}.`];
+    if (skipped.length) parts.push(`Left out (file missing on disk): ${someNames(skipped)}.`);
+    if (done.empty.length) parts.push(`Not exported (no files on disk): ${someNames(done.empty)}.`);
+    parts.push("On the other computer: Libraries → Import library…");
+    toast(skipped.length || done.empty.length ? "warn" : "success", parts.join(" "), "Reference Library", true);
+  };
+  ctl = modal({
+    title: "Export libraries",
+    content: [
+      h("div", "tpm-note", { textContent: "Tick the libraries to export. They are saved together as one zip (a copy of their files and names) in a folder you choose next." }),
+      list, status, error,
+    ],
+    actions: [
+      { label: "All", left: true, onClick: () => setAll(true) },
+      { label: "None", left: true, onClick: () => setAll(false) },
+      { label: "Cancel", onClick: (c) => c.close() },
+      { label: EXPORT_LABEL, kind: "primary", icon: "exportOut", onClick: run },
+    ],
+    focus: EXPORT_LABEL,
+  });
+  sync();
+  return ctl;
+}
+
+/** What an import did to one library of the zip, as a sentence or two. */
+function importedText(d) {
+  if (d.failed) return `${d.name}: nothing could be imported.`;
+  const parts = [];
+  if (d.new) parts.push(`Imported ${d.name} (${plural(d.added.length, "file")}).`);
+  else if (d.added.length) parts.push(`Added ${plural(d.added.length, "new file")} to ${d.name}; ${d.already} were already there.`);
+  else parts.push(`${d.name} already has everything in this export.`);
+  if (d.wanted_name) parts.push(`A library called ${d.wanted_name} already exists, so it is named ${d.name}: tags written as @${d.wanted_name}/… won't find it.`);
+  if (d.renamed.length) parts.push(`Renamed: ${someNames(d.renamed.map((r) => `${r.from} → ${r.to}`))}.`);
+  return parts.join(" ");
+}
+
+/** Imports a zip picked in the file dialog: new libraries, or more files for ones that are already here. */
+async function importLibrary() {
+  try {
+    const { result: done } = await pinned(() => library.importLibrary());
+    if (!done) return; // dialog cancelled
+    const libs = done.libraries;
+    const parts = libs.map(importedText);
+    const rejected = libs.flatMap((d) => d.rejected.map((r) => `${libs.length > 1 ? `${d.name}/` : ""}${r.name} (${r.error})`));
+    if (rejected.length) parts.push(`Not imported: ${someNames(rejected)}.`);
+    const added = libs.filter((d) => d.added.length);
+    if (added.length) parts.push(`Files are in ${added.length === 1 ? added[0].folder : added[0].folder.replace(/[\\/][^\\/]*$/, "")}.`);
+    const trouble = rejected.length || libs.some((d) => d.failed || d.wanted_name);
+    toast(trouble ? "warn" : "success", parts.join(" "), "Reference Library", !!trouble || added.length > 0);
+  } catch (e) {
+    toast("error", `Import failed: ${e.message}`);
+  }
+}
+
 let openPanel = null;
 
 /** Opens (or closes, if already open for this node) the Libraries dropdown under `anchor`. */
@@ -375,7 +518,13 @@ export function toggleLibraryPanel(anchor, node, onChange) {
     close();
     openAddDialog({ node, preselectNew: true });
   };
-  foot.append(add);
+  const imp = h("button", "tpl-new", { type: "button", title: "Add a library from a zip exported on another computer" });
+  imp.append(icon("importIn"), document.createTextNode("Import library…"));
+  imp.onclick = () => {
+    close();
+    importLibrary();
+  };
+  foot.append(add, imp);
   panel.append(list, foot);
 
   const render = () => {
@@ -400,6 +549,12 @@ export function toggleLibraryPanel(anchor, node, onChange) {
         close();
         openLibraryManager(lib, { node });
       };
+      const exp = h("button", "tpl-icon", { type: "button", title: "Export: save this library (and others you tick) as a zip to share or move to another computer" });
+      exp.append(icon("exportOut"));
+      exp.onclick = () => {
+        close();
+        openExportDialog(lib);
+      };
       const del = h("button", "tpl-icon", { type: "button", title: "Delete library" });
       del.append(icon("trash"));
       del.onclick = async () => {
@@ -416,7 +571,7 @@ export function toggleLibraryPanel(anchor, node, onChange) {
         }
       };
       row.append(sw, h("span", "tpl-name", { textContent: lib.name, title: lib.name }),
-        h("span", "tpl-count", { textContent: String(lib.count) }), ren, del);
+        h("span", "tpl-count", { textContent: String(lib.count) }), ren, exp, del);
       list.append(row);
     }
   };

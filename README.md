@@ -47,6 +47,7 @@ the same two nodes, however many references you use.
 - [Slices: use part of an image](#slices-use-part-of-an-image)
 - [Outputs: every tagged file, and a batch](#outputs-every-tagged-file-and-a-batch)
 - [Libraries in detail](#libraries-in-detail)
+- [Share a library: export and import](#share-a-library-export-and-import)
 - [Reference Image / Video / Audio nodes](#reference-image--video--audio-nodes)
 - [Safety](#safety)
 - [Install](#install)
@@ -57,7 +58,7 @@ the same two nodes, however many references you use.
 
 ### 1. The Reference Prompt node
 
-Add it from **Add Node → image → library → Reference Prompt**. The header holds your libraries and the
+Add it from **Add Node → Reference Library → Reference Prompt**. The header holds your libraries and the
 button to add files.
 
 <img src="docs/images/01_reference_prompt_node.png" width="720" alt="The Reference Prompt node">
@@ -146,7 +147,8 @@ Red, purple and grey tags block the queue with a notice. **Export (API)** still 
 
 ## What happens when you queue
 
-For each model node with growing media inputs whose prompt contains `@tags`:
+For each model node with growing media inputs whose prompt comes from a Reference Prompt (directly, or
+through string nodes):
 
 1. Files you wired into the model by hand keep their inputs.
 2. Then, on the next free inputs, up to the model's limit:
@@ -157,8 +159,10 @@ For each model node with growing media inputs whose prompt contains `@tags`:
 
 Queueing is refused, with a message saying why, when a tag can't be used (see [Tag colors](#tag-colors)),
 when a prompt tags more files than the model takes, or when a Reference Prompt with tags isn't connected to
-any model it can fill (so raw `@tags` are never sent). A stray `@word` typed straight into a model's own
-prompt is left as text, and e-mail addresses like `me@x.com` are ignored.
+any model it can fill (so raw `@tags` are never sent). E-mail addresses like `me@x.com` are ignored.
+
+Workflows without a Reference Prompt are never touched: an `@word` in a prompt that no Reference Prompt
+feeds stays as typed, even if it matches a library name, and queueing doesn't wait on the library.
 
 ## Supported model nodes
 
@@ -373,8 +377,8 @@ prompt doesn't name.
 
 - **Local libraries only (for now).** A library points to files on the disk of the computer running
   ComfyUI. Web links, cloud storage links (Google Drive, Dropbox, …) and Comfy Cloud aren't supported.
-  Libraries also aren't shared: a workflow opened on another computer finds its tags only if that
-  computer has a library with the same names. Sharing libraries is planned.
+  A workflow opened on another computer finds its tags only if that computer has the library too:
+  [export it and import it there](#share-a-library-export-and-import).
 - **Several libraries.** A plain `@Rooster` means the first enabled library that has it;
   `@Library_02/Rooster` names the library (typing `@Library_02/` in the list shows only that library).
 - **Per node:** switch libraries on or off in each node's **Libraries** menu, which also edits and
@@ -389,6 +393,32 @@ prompt doesn't name.
 - **Storage:** `ComfyUI/user/default/library_image/library.json`, with a `.bak` of the previous
   version (a damaged file is set aside and the backup restored). Thumbnails are cached inside the pack's
   own folder (`.cache/thumbs`) and rebuilt when needed.
+
+## Share a library: export and import
+
+A workflow stores `@names`, not files, so it needs its libraries on every computer it runs on.
+
+**Export:** in a Reference Prompt's **Libraries** menu, click the export button (arrow out of a tray) next
+to a library. A list of all your libraries opens with that one ticked; tick any others that should travel
+with it. **Choose folder and export…** then opens your system's folder dialog (Windows, macOS and Linux),
+and the ticked libraries are saved there together as one zip: `<Library name>.zip` for a single library,
+`Reference_Libraries.zip` for several. An existing zip is never overwritten (`<name>_2.zip`, …).
+
+The zip holds a copy of every file plus the libraries' and files' names. No folder names from your disk are
+in it. Files that are missing on disk are left out, and the notice names them.
+
+**Import:** on the other computer, **Libraries → Import library…** and pick the zip.
+
+- Each library's files are unpacked to `ComfyUI/input/reference_library/<Library name>/` and the libraries
+  appear with the same names and the same `@names`, so the workflow's tags turn green.
+- **Importing a newer export of a library you already have** adds only the files that are new. Files you
+  already have, and anything you renamed or removed on this computer, are left as they are.
+- If another library already has that name, the imported one gets `<name>_2`. Plain tags (`@Rooster`) still
+  work; tags that name the library (`@Team/Rooster`) need the library renamed.
+- Only images, videos and audio are unpacked, and only into that folder, whatever the zip says.
+
+Export and import work only on the computer running ComfyUI, like every other change to a library.
+Workflows queued without the interface (API, headless) still need their tags resolved in the browser first.
 
 ## Reference Image / Video / Audio nodes
 
@@ -414,7 +444,11 @@ then on paths in that folder work.
 
 **Requirement: Nodes 2.0.** The Reference Prompt's thumbnails, `@` list, tag colors and dialogs are built
 for ComfyUI's modern node design. Turn it on in **Settings → Comfy → Nodes 2.0 → Modern Node Design
-(Nodes 2.0)**. With the classic canvas nodes the pack doesn't work.
+(Nodes 2.0)**. With the classic canvas nodes the pack doesn't work; a notice says so when a Reference
+Prompt is used while Nodes 2.0 is off.
+
+**Versions:** known to work from ComfyUI 0.45.0 with frontend 1.55.18. On an older frontend a notice asks
+you to update ComfyUI.
 
 ComfyUI loads custom nodes from `ComfyUI/custom_nodes/`. For ComfyUI Desktop that folder is inside the
 base folder you chose at setup (e.g. `Documents\ComfyUI\custom_nodes`); for the portable build it is

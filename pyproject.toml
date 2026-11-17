@@ -6,7 +6,9 @@ license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.10"
 # Uses only what ComfyUI already ships: torch, numpy, Pillow, PyAV, aiohttp.
-dependencies = []
+# The frontend entry is the oldest ComfyUI frontend the pack is known to work with (Nodes 2.0 and the
+# internals in web/compat.js); keep it in step with MIN_FRONTEND there.
+dependencies = ["comfyui-frontend-package>=1.55.18"]
 
 [project.urls]
 Repository = "https://github.com/PixelMonkey77/comfyui-reference-library"
@@ -14,6 +16,8 @@ Repository = "https://github.com/PixelMonkey77/comfyui-reference-library"
 [tool.comfy]
 PublisherId = "pixelmonkey77"
 DisplayName = "Reference Library"
+# The oldest ComfyUI the pack is known to work with.
+requires-comfyui = ">=0.45.0"
 Icon = "https://raw.githubusercontent.com/PixelMonkey77/comfyui-reference-library/main/docs/images/registry_icon.png"
 Banner = "https://raw.githubusercontent.com/PixelMonkey77/comfyui-reference-library/main/docs/images/registry_banner.png"
 includes = []

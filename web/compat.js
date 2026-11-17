@@ -3,6 +3,47 @@
 import { api } from "../../scripts/api.js";
 import { app } from "../../scripts/app.js";
 
+/** The oldest ComfyUI frontend this pack is known to work with (keep in step with pyproject.toml). */
+export const MIN_FRONTEND = "1.55.18";
+
+const versionParts = (v) => String(v).split(/[.+-]/).slice(0, 3).map((n) => parseInt(n, 10) || 0);
+/** True if version `v` ("1.54.2") is older than `min`. */
+export function versionBelow(v, min) {
+  const a = versionParts(v), b = versionParts(min);
+  for (let i = 0; i < 3; i++) if (a[i] !== b[i]) return a[i] < b[i];
+  return false;
+}
+
+/** Whether Nodes 2.0 is on: true / false, or null when this frontend doesn't say (nothing is claimed then). */
+export function nodes2Enabled() {
+  try {
+    const v = app.extensionManager?.setting?.get?.("Comfy.VueNodes.Enabled");
+    return typeof v === "boolean" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+let queueHooked = false;
+
+/** What about this ComfyUI keeps the pack from working: messages for the user ([] when all is well). */
+export function environmentProblems() {
+  const out = [];
+  const v = window.__COMFYUI_FRONTEND_VERSION__;
+  if (v && versionBelow(v, MIN_FRONTEND)) {
+    out.push(`This ComfyUI's interface (frontend ${v}) is older than the Reference Library needs (${MIN_FRONTEND}). Update ComfyUI.`);
+  }
+  if (nodes2Enabled() === false) {
+    out.push("The Reference Prompt needs Nodes 2.0: on classic nodes its thumbnails, @ list and tag colors don't work. "
+      + "Turn on Settings → Comfy → Nodes 2.0 → Modern Node Design (Nodes 2.0).");
+  }
+  if (!queueHooked) {
+    out.push("This ComfyUI version queues prompts in a way the Reference Library doesn't know: @tags would be sent as "
+      + "typed, without their files. Update the Reference Library pack.");
+  }
+  return out;
+}
+
 /** The graph shown on the canvas (a subgraph while you're inside one). */
 export const currentGraph = () => app.canvas?.graph ?? app.graph;
 
@@ -136,8 +177,14 @@ export const isOutputSlot = (slotEl) => slotEl.classList.contains("lg-slot--outp
 export function wrapGraphToPrompt(fn) {
   // Wrap once, even if the pack is loaded twice (another extension may wrap graphToPrompt after us,
   // so a marker on the function wouldn't be seen).
-  if (window.__libraryImageQueueHook) return;
+  if (window.__libraryImageQueueHook) {
+    queueHooked = true; // by the copy of the pack that loaded first
+    return;
+  }
+  // Internals this hook stands on: without them, say so (environmentProblems) instead of failing quietly.
+  if (typeof app.graphToPrompt !== "function" || typeof api.queuePrompt !== "function") return;
   window.__libraryImageQueueHook = true;
+  queueHooked = true;
   const orig = app.graphToPrompt;
   const wrapped = async function (...args) {
     const res = await orig.apply(this, args);

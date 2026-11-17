@@ -140,9 +140,10 @@ export const setWidget = (node, name, value) => {
   }
 };
 
-export function toast(severity, detail, summary = "Reference Library") {
+/** A notice in ComfyUI's corner; `sticky` ones stay until closed. */
+export function toast(severity, detail, summary = "Reference Library", sticky = false) {
   const t = app.extensionManager?.toast;
-  if (t?.add) t.add({ severity, summary, detail, life: severity === "error" ? 6000 : 3500 });
+  if (t?.add) t.add({ severity, summary, detail, ...(sticky ? {} : { life: severity === "error" ? 6000 : 3500 }) });
   else console[severity === "error" ? "error" : "warn"]("[LibraryImage]", detail);
 }
 
@@ -340,6 +341,28 @@ export const library = {
 
   async deleteLibrary(id) {
     return this._set(await postJson("/library_image/library/delete", { id }));
+  },
+
+  /**
+   * Saves libraries as one zip (their files and names, no disk paths) in a folder picked in the
+   * server's folder dialog. Resolves to null if that was cancelled, else { path, empty: [names of
+   * libraries with no file on disk], libraries: [{ name, files, skipped: [names of assets whose file
+   * is missing] }] }.
+   */
+  async exportLibraries(ids) {
+    return (await postJson("/library_image/library/export", { ids })).exported;
+  },
+
+  /**
+   * Imports an exported zip picked in the server's file dialog. Resolves to null if cancelled, else
+   * { libraries: [{ name, new, failed, added: [ids], already, wanted_name, renamed,
+   * rejected: [{ name, error }], folder }] }.
+   */
+  async importLibrary() {
+    const data = await postJson("/library_image/library/import");
+    if (!data.imported) return null;
+    this._set(data);
+    return data.imported;
   },
 
   /** Image/video thumbnail URL, or null for audio (the UI draws a placeholder). */

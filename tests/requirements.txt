@@ -1,0 +1,6 @@
+# What the server tests need (ComfyUI's own Python already has all but pytest).
+# torch is optional: without it the one check that loads an image as a tensor is skipped.
+pytest>=8
+pillow
+numpy
+aiohttp

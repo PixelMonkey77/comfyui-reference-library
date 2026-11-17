@@ -4,9 +4,9 @@
 // rewrites @tags to "image N" / "Video N" / "Audio N" (tp_bind, with placement from tp_plan).
 import { app } from "../../scripts/app.js";
 import { library, toast } from "./common.js";
-import { wrapGraphToPrompt } from "./compat.js";
+import { environmentProblems, wrapGraphToPrompt } from "./compat.js";
 import { setHooks } from "./dialogs.js";
-import { bindPrompt } from "./tp_bind.js";
+import { bindPrompt, usesReferencePrompt } from "./tp_bind.js";
 import { installInkListeners } from "./tp_hover.js";
 import { inks } from "./tp_ink.js";
 import { syncInputs } from "./tp_inputs.js";
@@ -18,6 +18,22 @@ import {
 } from "./tp_strip.js";
 import { installStyle } from "./tp_style.js";
 import { h } from "./ui.js";
+
+const QUEUE_MAX_AGE = 2000; // ms: how old the library copy used for queueing may be
+
+// Says, once per problem and until closed, why the Reference Prompt can't work in this ComfyUI (Nodes 2.0
+// off, an older or unknown frontend). Only where a Reference Prompt is in use; said again if a problem
+// that went away (Nodes 2.0 switched back on) returns.
+const warned = new Set();
+function warnEnvironment() {
+  const problems = environmentProblems();
+  for (const msg of [...warned]) if (!problems.includes(msg)) warned.delete(msg);
+  for (const msg of problems) {
+    if (warned.has(msg)) continue;
+    warned.add(msg);
+    toast("warn", msg, "Reference Library", true);
+  }
+}
 
 app.registerExtension({
   name: "LibraryImage.TaggedPrompt",
@@ -60,6 +76,7 @@ app.registerExtension({
       }, 0);
       this.setSize([Math.max(this.size[0], 420), Math.max(this.size[1], 330)]);
       library.load().then(() => refreshStrip(this));
+      setTimeout(warnEnvironment, 500); // after a loading workflow's nodes are all there: one notice, not one per node
       return r;
     };
 
@@ -116,7 +133,12 @@ app.registerExtension({
     document.addEventListener("visibilitychange", () => document.hidden || refreshAllStrips());
 
     wrapGraphToPrompt(async (output) => {
-      await library.load(true); // fresh: catch files deleted or moved since the page loaded
+      // Workflows without a Reference Prompt are none of this pack's business: no wait, no changes.
+      if (!usesReferencePrompt(output)) return [];
+      warnEnvironment();
+      // Catch files deleted or moved since the page loaded; a copy from the last moment will do
+      // (queueing a batch shouldn't re-check the disk for every item).
+      await library.load(true, QUEUE_MAX_AGE);
       let errors;
       try {
         errors = bindPrompt(output);

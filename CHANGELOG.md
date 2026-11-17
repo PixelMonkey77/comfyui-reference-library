@@ -4,6 +4,31 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
+## Unreleased
+
+- **Share libraries: export and import.** The export button next to a library in the **Libraries** menu
+  opens a list of all libraries with that one ticked; the ticked ones are saved together as one zip (a copy
+  of their files and names, no disk paths) in a folder picked in the system's folder dialog. **Import
+  library…** unpacks a zip into `ComfyUI/input/reference_library/<name>/`. Libraries arrive with the same
+  names and ids, so a workflow from another computer finds its tags and keeps its switched-off libraries.
+  Importing a newer export of a library that is already there adds only the new files.
+- **Only acts where a Reference Prompt is used.** Workflows without a Reference Prompt are no longer
+  touched at queue time, and queueing them no longer waits on a library check. `@tags` are bound only in
+  prompts fed by a Reference Prompt (directly or through string nodes). **Changed:** an `@name` typed
+  straight into a model's own prompt, or into a string node no Reference Prompt feeds, is now left as text
+  even when it matches a library name; type it in a Reference Prompt instead.
+- With a Reference Prompt, the library check before queueing reuses a copy from the last 2 seconds.
+- **Security:** the library routes now also refuse requests from a page of another origin on the same site
+  (for example another `localhost` port, which got through when ComfyUI was started with
+  `--enable-cors-header`). `Origin` must match the address ComfyUI was opened at. If ComfyUI sits behind a
+  reverse proxy, the proxy must pass the original `Host` header through.
+- README: the nodes are under **Add Node → Reference Library**.
+- **Minimum versions declared:** ComfyUI 0.45.0 and frontend 1.55.18 (`pyproject.toml`). When a Reference
+  Prompt is used with Nodes 2.0 off, on an older frontend, or on a ComfyUI whose queueing the pack can't
+  hook into, a notice that stays until closed says what to do, instead of the node quietly not working.
+- Development: the server tests are now pytest (`python -m pytest tests`), need no ComfyUI checkout or
+  image files, run on GitHub for every push, and gate publishing.
+
 ## 0.1.8
 
 - **Slices:** hovering a library image's tag shows a dotted-square button that opens the image large. Zoom

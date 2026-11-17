@@ -141,7 +141,7 @@ await scenario("concat-shared", async () => {
   c.connect(0, t1, idx(t1, "prompt")); c.connect(0, t2, idx(t2, "prompt"));
   return { tps: [tp] };
 });
-// 8. @tags typed in a plain string node, through concat (no Reference Prompt)
+// 8. @tags typed in a plain string node, through concat (no Reference Prompt): must be left untouched
 await scenario("typed-in-concat", async () => {
   const t = add("GeminiNanoBanana2V2", 900, 2000);
   const c = add("StringConcatenate", 450, 2000);

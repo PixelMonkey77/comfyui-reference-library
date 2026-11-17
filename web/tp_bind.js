@@ -30,8 +30,12 @@ function promptChain(output, link) {
 
 const stringsOf = (node) => Object.values(node?.inputs ?? {}).filter((x) => typeof x === "string");
 
+/** True if the API prompt has a Reference Prompt: without one this pack leaves the prompt alone. */
+export const usesReferencePrompt = (output) => Object.values(output ?? {}).some((n) => isTpType(n?.class_type));
+
 /**
- * For every node with auto-grow media ports in the API prompt:
+ * For every node with auto-grow media ports in the API prompt whose prompt text comes from a
+ * Reference Prompt (directly or through string nodes):
  *   1. add a hidden Reference Image/Video/Audio loader for each @tag that is in the library but not
  *      wired yet, and wire plugged-in files, on the ports placeTags picks;
  *   2. rewrite @tags in its prompt (wherever along the string chain they were typed) to "image N" /
@@ -41,6 +45,7 @@ const stringsOf = (node) => Object.values(node?.inputs ?? {}).filter((x) => type
  */
 export function bindPrompt(output) {
   const errors = [];
+  if (!usesReferencePrompt(output)) return errors;
   // Ids for added nodes can never be canvas ids, so progress and errors never point at a wrong node.
   let added = 0;
   const newId = (kind) => {
@@ -133,15 +138,17 @@ export function bindPrompt(output) {
     if (!Object.keys(prefixes).length) continue;
     const label = uiNode?.title ?? `node ${id}`;
 
-    // The prompt: an input whose text (typed here, or produced upstream through string nodes) has
-    // @tags, or (even without tags) one fed by a Reference Prompt, whose plugged-in files need placing.
+    // The prompt: an input fed by a Reference Prompt (directly or through string nodes); one whose
+    // text has @tags first, else (without tags) any, since its plugged-in files still need placing.
+    // An "@word" in a prompt that no Reference Prompt feeds is that workflow's own text: left alone.
     const candidates = Object.keys(inputs).filter(isPromptKey).map((key) => {
       const v = inputs[key];
       const chain = Array.isArray(v) ? promptChain(output, v) : [];
       const texts = typeof v === "string" ? [v] : chain.flatMap((c) => stringsOf(output[c]));
       return { key, v, chain, texts, tps: chain.filter((c) => isTpType(output[c].class_type)) };
     });
-    const pick = candidates.find((c) => c.texts.some((t) => mentionsIn(t).length)) ?? candidates.find((c) => c.tps.length);
+    const fed = candidates.filter((c) => c.tps.length);
+    const pick = fed.find((c) => c.texts.some((t) => mentionsIn(t).length)) ?? fed[0];
     if (!pick) continue;
     if (pick.tps.length > 1) {
       errors.push(`${label}: its prompt combines ${pick.tps.length} Reference Prompts; use one Reference Prompt per model node.`);
