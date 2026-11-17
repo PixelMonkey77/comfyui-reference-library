@@ -4,7 +4,7 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
-## Unreleased
+## 0.1.9
 
 - **Share libraries: export and import.** The export button next to a library in the **Libraries** menu
   opens a list of all libraries with that one ticked; the ticked ones are saved together as one zip (a copy
@@ -22,10 +22,16 @@
   (for example another `localhost` port, which got through when ComfyUI was started with
   `--enable-cors-header`). `Origin` must match the address ComfyUI was opened at. If ComfyUI sits behind a
   reverse proxy, the proxy must pass the original `Host` header through.
+- **Export (API) is refused while tags have problems** (red, purple or grey tags), like queueing: the file
+  would hold raw `@tags` without their files. Saving and exporting the workflow itself is unaffected.
+- **Example workflow** in `example_workflows/` (listed in ComfyUI's Templates), with a demo library to
+  import and the image it plugs in.
 - README: the nodes are under **Add Node → Reference Library**.
 - **Minimum versions declared:** ComfyUI 0.45.0 and frontend 1.55.18 (`pyproject.toml`). When a Reference
   Prompt is used with Nodes 2.0 off, on an older frontend, or on a ComfyUI whose queueing the pack can't
   hook into, a notice that stays until closed says what to do, instead of the node quietly not working.
+- Development: the backend, one 1,900-line `__init__.py`, is now the `reference_library/` package (one module
+  per concern); nothing about its behavior changed.
 - Development: the server tests are now pytest (`python -m pytest tests`), need no ComfyUI checkout or
   image files, run on GitHub for every push, and gate publishing.
 

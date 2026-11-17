@@ -19,16 +19,30 @@ windows_only = pytest.mark.skipif(os.name != "nt", reason="checks Windows path f
 
 
 class _Routes:
-    """PromptServer.instance.routes: every route decorator hands the handler back unchanged."""
-    def __getattr__(self, _):
-        return lambda *a, **k: (lambda f: f)
+    """PromptServer.instance.routes: every route decorator hands the handler back unchanged, and
+    what was registered is kept in `registered` as (method, path)."""
+
+    def __init__(self):
+        self.registered = []
+
+    def __getattr__(self, method):
+        def register(path, *a, **k):
+            self.registered.append((method, path))
+            return lambda f: f
+        return register
+
+
+_loaded = 0
 
 
 def load_pack(scratch):
     """A fresh copy of the pack (its own caches and locks) whose user / input / output folders are
-    inside `scratch`."""
+    inside `scratch`. Returns the backend package: its modules are attributes (pack.store,
+    pack.library, pack.routes, ...), so a test reaches a function as pack.store._load_library and
+    patches it in the module that owns it."""
+    global _loaded
     server = types.ModuleType("server")
-    server.PromptServer = type("PromptServer", (), {"instance": type("Instance", (), {"routes": _Routes()})()})
+    server.PromptServer = type("PromptServer", (), {"instance": type("Instance", (), {"routes": _Routes()})()})  # new routes per copy
     sys.modules["server"] = server
     fp = types.ModuleType("folder_paths")
     fp.get_user_directory = lambda: scratch
@@ -37,11 +51,19 @@ def load_pack(scratch):
     sys.modules["folder_paths"] = fp
     if not HAS_TORCH:
         sys.modules.setdefault("torch", types.ModuleType("torch"))
-    spec = importlib.util.spec_from_file_location("reference_library_under_test", os.path.join(PACK_DIR, "__init__.py"))
-    pack = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(pack)
-    pack._CACHE_DIR = os.path.join(scratch, "cache")  # not the repo's own .cache
+    # Loaded the way ComfyUI loads a custom node: the pack's folder as a package, from its __init__.py.
+    # A new name each time, so every copy gets its own modules (and its own state).
+    _loaded += 1
+    name = f"reference_library_under_test_{_loaded}"
+    spec = importlib.util.spec_from_file_location(name, os.path.join(PACK_DIR, "__init__.py"),
+                                                  submodule_search_locations=[PACK_DIR])
+    root = importlib.util.module_from_spec(spec)
+    sys.modules[name] = root
+    spec.loader.exec_module(root)
+    pack = sys.modules[f"{name}.reference_library"]
+    pack.thumbs._CACHE_DIR = os.path.join(scratch, "cache")  # not the repo's own .cache
     pack.folder_paths_stub = fp
+    pack.root = root  # what ComfyUI sees: NODE_CLASS_MAPPINGS, WEB_DIRECTORY
     return pack
 
 

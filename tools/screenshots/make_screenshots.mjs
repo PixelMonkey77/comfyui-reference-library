@@ -71,6 +71,7 @@ function prepareBase() {
   const pack = path.join(base, "custom_nodes", "comfyui-reference-library");
   fs.mkdirSync(pack, { recursive: true });
   fs.copyFileSync(path.join(REPO, "__init__.py"), path.join(pack, "__init__.py"));
+  fs.cpSync(path.join(REPO, "reference_library"), path.join(pack, "reference_library"), { recursive: true });
   fs.cpSync(path.join(REPO, "web"), path.join(pack, "web"), { recursive: true });
   for (const d of ["input", "output", "temp", path.join("user", "default")]) fs.mkdirSync(path.join(base, d), { recursive: true });
   // A file outside the library for the Load Image step (a copy, under a name the library doesn't use).

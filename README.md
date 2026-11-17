@@ -38,6 +38,7 @@ the same two nodes, however many references you use.
 
 - [No image wires](#no-image-wires)
 - [Getting started](#getting-started)
+- [Example workflow](#example-workflow)
 - [Tag colors](#tag-colors)
 - [What happens when you queue](#what-happens-when-you-queue)
 - [Supported model nodes](#supported-model-nodes)
@@ -132,6 +133,18 @@ as String Concatenate) and queue. Nothing else: the tagged files are wired into 
 Plug a Load Image (Video, Audio) into the node to tag its file for this run, before or after the
 library files: see [Files that aren't in a library](#files-that-arent-in-a-library).
 
+## Example workflow
+
+A ready-made workflow is in [`example_workflows/`](example_workflows/) and, once the pack is installed, in
+ComfyUI under **Templates → comfyui-reference-library**: one Reference Prompt feeding Nano Banana Pro,
+Nano Banana 2.1 and Seedream, with two library files and one plugged-in image.
+
+<img src="docs/images/example_workflow.png" width="900" alt="The example workflow: a Load Image node and a Reference Prompt feeding three model nodes">
+
+It uses a small demo library and a donut image, both in `example_workflows/assets/`:
+**Libraries → Import library…** → `Demo.zip`, and load `Donut.png` in the *Donut goes here* node. Details in
+[`example_workflows/README.md`](example_workflows/README.md).
+
 ## Tag colors
 
 | Color | Meaning | Click it to… |
@@ -143,7 +156,8 @@ library files: see [Files that aren't in a library](#files-that-arent-in-a-libra
 | Purple | The library entry's file is missing on disk | replace the file |
 | Grey, struck through | Its library is switched off in this node | enable the library |
 
-Red, purple and grey tags block the queue with a notice. **Export (API)** still works.
+Red, purple and grey tags block the queue with a notice, and **Export (API)** too: the file would hold
+raw `@tags` without their files. Saving and exporting the workflow itself always works.
 
 ## What happens when you queue
 
@@ -476,6 +490,10 @@ libraries only point to them.
 
 ## Development
 
+- `__init__.py` is what ComfyUI imports; the backend is the `reference_library/` package next to it, one
+  module per concern (`store` for `library.json`, `library` for changes, `transfer` for export / import,
+  `thumbs`, `slices`, `dialogs`, `guard` for request trust, `nodes`, and `routes`, which lists every HTTP
+  route). The interface is in `web/`.
 - `tests/`: offline server tests (run with ComfyUI's Python, no running server needed) and a browser
   regression harness for the canvas and queue binding; see [`tests/README.md`](tests/README.md).
 - `tools/screenshots/`: recreates the images above, callouts included, with one command

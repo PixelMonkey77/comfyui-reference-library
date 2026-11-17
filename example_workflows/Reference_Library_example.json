@@ -1,0 +1,642 @@
+{
+  "id": "e9c54bd0-dbd2-433c-ac59-ce642eabedbe",
+  "revision": 0,
+  "last_node_id": 17,
+  "last_link_id": 17,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "GeminiNanoBanana2V2",
+      "pos": [
+        2566.8960449925926,
+        -1588.4484844707436
+      ],
+      "size": [
+        417.33552709351227,
+        398
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 17
+        },
+        {
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "model.files",
+          "shape": 7,
+          "type": "GEMINI_INPUT_FILES",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            15
+          ]
+        },
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        },
+        {
+          "name": "thought_image",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GeminiNanoBanana2V2"
+      },
+      "widgets_values": [
+        "",
+        "Gemini Nano Banana 2.1",
+        "1:1",
+        "2K",
+        "HIGH",
+        383274530336545,
+        "randomize",
+        "IMAGE",
+        "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests.",
+        1,
+        0.95
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "model": "Gemini Nano Banana 2.1",
+        "model.aspect_ratio": "1:1",
+        "model.resolution": "2K",
+        "model.thinking_level": "HIGH",
+        "seed": 383274530336545,
+        "control_after_generate": "randomize",
+        "response_modalities": "IMAGE",
+        "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests.",
+        "temperature": 1,
+        "top_p": 0.95
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 3,
+      "type": "ReferencePrompt",
+      "pos": [
+        1913.3677161172402,
+        -1717.1489715377945
+      ],
+      "size": [
+        487.27043830660256,
+        414.22403359863654
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "image_1 ⇤",
+          "name": "image_1",
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "label": "image_2",
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "label": "video_1",
+          "name": "video_1",
+          "type": "VIDEO",
+          "link": null
+        },
+        {
+          "label": "audio_1",
+          "name": "audio_1",
+          "type": "AUDIO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": [
+            7,
+            11,
+            17
+          ]
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            12
+          ]
+        },
+        {
+          "label": "@Donut (1)",
+          "name": "@Donut",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "label": "@Alex (3)",
+          "name": "@Alex",
+          "type": "IMAGE",
+          "links": null
+        },
+        {
+          "label": "@Karl (2)",
+          "name": "@Karl",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ReferencePrompt",
+        "tp_ext": {
+          "donut": {
+            "name": "Donut",
+            "base": "Donut",
+            "src": "4:0",
+            "kind": "image",
+            "file": "Donut.png",
+            "from": "Donut goes here"
+          }
+        },
+        "tp_before": {},
+        "tp_out": {
+          "@Karl": "fbda8ea52ba9",
+          "@Alex": "2ba6578d3b8e"
+        },
+        "tp_xout": {
+          "@Donut": "donut"
+        },
+        "tp_xsrc": {
+          "@Donut": "4:0"
+        }
+      },
+      "widgets_values": [
+        "The character in @Karl is eating the donut from @Donut.\nIn the background @Alex is preparing a meal.\n\nUse Pixar inspired 3D render style.\n\n"
+      ],
+      "widgets_values_named": {
+        "text": "The character in @Karl is eating the donut from @Donut.\nIn the background @Alex is preparing a meal.\n\nUse Pixar inspired 3D render style.\n\n"
+      }
+    },
+    {
+      "id": 4,
+      "type": "LoadImage",
+      "pos": [
+        1523.2975002641174,
+        -1717.5291151811102
+      ],
+      "size": [
+        341.72833821617104,
+        422.5460399315231
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Donut goes here",
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "Donut.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "Donut.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 8,
+      "type": "ByteDanceSeedreamNodeV3",
+      "pos": [
+        2566.544466311132,
+        -1124.9471003192518
+      ],
+      "size": [
+        420.4778978177007,
+        392.1000453427285
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 7
+        },
+        {
+          "name": "model.images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            16
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ByteDanceSeedreamNodeV3"
+      },
+      "widgets_values": [
+        "",
+        "seedream 5.5",
+        "Custom",
+        2048,
+        2048,
+        "auto",
+        1021425559,
+        "randomize",
+        false,
+        "randomize"
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "model": "seedream 5.5",
+        "model.size_preset": "Custom",
+        "model.width": 2048,
+        "model.height": 2048,
+        "model.background": "auto",
+        "model.seed": 1021425559,
+        "control_after_generate#1": "randomize",
+        "model.watermark": false,
+        "control_after_generate": "randomize"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 11,
+      "type": "GeminiImage2Node",
+      "pos": [
+        2565.7768274917735,
+        -2041.5337800356897
+      ],
+      "size": [
+        417.32504552068497,
+        382.2763000375683
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 12
+        },
+        {
+          "name": "files",
+          "shape": 7,
+          "type": "GEMINI_INPUT_FILES",
+          "link": null
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 11
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            14
+          ]
+        },
+        {
+          "name": "STRING",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GeminiImage2Node"
+      },
+      "widgets_values": [
+        "",
+        "gemini-3-pro-image-preview",
+        499517780845214,
+        "randomize",
+        "1:1",
+        "2K",
+        "IMAGE+TEXT",
+        "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "model": "gemini-3-pro-image-preview",
+        "seed": 499517780845214,
+        "control_after_generate": "randomize",
+        "aspect_ratio": "1:1",
+        "resolution": "2K",
+        "response_modalities": "IMAGE+TEXT",
+        "system_prompt": "You are an expert image-generation engine. You must ALWAYS produce an image.\nInterpret all user input—regardless of format, intent, or abstraction—as literal visual directives for image composition.\nIf a prompt is conversational or lacks specific visual details, you must creatively invent a concrete visual scenario that depicts the concept.\nPrioritize generating the visual representation above any text, formatting, or conversational requests."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 14,
+      "type": "SaveImageAdvanced",
+      "pos": [
+        3029.4515525100715,
+        -2052.3059276612676
+      ],
+      "size": [
+        314.20554654106684,
+        212.9407377199972
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 14
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImageAdvanced"
+      },
+      "widgets_values": [
+        "ComfyUI",
+        "png",
+        "8-bit",
+        "sRGB",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "ComfyUI",
+        "format": "png",
+        "format.bit_depth": "8-bit",
+        "format.input_color_space": "sRGB",
+        "format.channels": "auto"
+      }
+    },
+    {
+      "id": 15,
+      "type": "SaveImageAdvanced",
+      "pos": [
+        3027.5173142543854,
+        -1580.9803227304617
+      ],
+      "size": [
+        347.13752415793283,
+        397.56102881432264
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImageAdvanced"
+      },
+      "widgets_values": [
+        "ComfyUI",
+        "png",
+        "8-bit",
+        "sRGB",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "ComfyUI",
+        "format": "png",
+        "format.bit_depth": "8-bit",
+        "format.input_color_space": "sRGB",
+        "format.channels": "auto"
+      }
+    },
+    {
+      "id": 16,
+      "type": "SaveImageAdvanced",
+      "pos": [
+        3030.5186783178633,
+        -1119.2677995315623
+      ],
+      "size": [
+        337.28256886774375,
+        381.9874603869577
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 16
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImageAdvanced"
+      },
+      "widgets_values": [
+        "ComfyUI",
+        "png",
+        "8-bit",
+        "sRGB",
+        "auto"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "ComfyUI",
+        "format": "png",
+        "format.bit_depth": "8-bit",
+        "format.input_color_space": "sRGB",
+        "format.channels": "auto"
+      }
+    },
+    {
+      "id": 17,
+      "type": "MarkdownNote",
+      "pos": [
+        1913.3677161172402,
+        -2025
+      ],
+      "size": [
+        487,
+        250
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## Reference Library example\n\nThis workflow needs two files, both in the pack's `example_workflows/assets` folder:\n\n1. **The demo library.** In the Reference Prompt open **Libraries → Import library…** and pick `Demo.zip`. The tags `@Karl` and `@Alex` turn blue.\n2. **The donut.** Load `Donut.png` in the *Donut goes here* node.\n\nFiles: https://github.com/PixelMonkey77/comfyui-reference-library/tree/main/example_workflows/assets\n"
+      ],
+      "widgets_values_named": {
+        "text": "## Reference Library example\n\nThis workflow needs two files, both in the pack's `example_workflows/assets` folder:\n\n1. **The demo library.** In the Reference Prompt open **Libraries → Import library…** and pick `Demo.zip`. The tags `@Karl` and `@Alex` turn blue.\n2. **The donut.** Load `Donut.png` in the *Donut goes here* node.\n\nFiles: https://github.com/PixelMonkey77/comfyui-reference-library/tree/main/example_workflows/assets\n"
+      },
+      "color": "#222",
+      "bgcolor": "#000"
+    }
+  ],
+  "links": [
+    [
+      11,
+      3,
+      0,
+      11,
+      2,
+      "STRING"
+    ],
+    [
+      12,
+      3,
+      1,
+      11,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
+      3,
+      0,
+      8,
+      0,
+      "STRING"
+    ],
+    [
+      14,
+      11,
+      0,
+      14,
+      0,
+      "IMAGE"
+    ],
+    [
+      15,
+      1,
+      0,
+      15,
+      0,
+      "IMAGE"
+    ],
+    [
+      16,
+      8,
+      0,
+      16,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      4,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      17,
+      3,
+      0,
+      1,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.486436280241616,
+      "offset": [
+        -1366.6232756433953,
+        2203.8674603913255
+      ]
+    },
+    "frontendVersion": "1.59.1"
+  },
+  "extensions": {
+    "seed_widgets": {
+      "1": 5,
+      "11": 2
+    }
+  },
+  "version": 0.4,
+  "seed_widgets": {
+    "1": 5,
+    "11": 2
+  }
+}

@@ -1,6 +1,7 @@
 # Tests for comfyui-reference-library
 
-Development only: ComfyUI never loads this folder (it imports `__init__.py` and serves `web/`).
+Development only: ComfyUI never loads this folder (it imports `__init__.py`, which loads the
+`reference_library/` package, and serves `web/`).
 
 ## Server tests (pytest; no ComfyUI, no running server, no image files needed)
 
@@ -12,7 +13,9 @@ From the repo root:
 Any Python 3.10+ works. ComfyUI's own Python has everything but pytest, and also torch, so nothing is
 skipped there, e.g. on Windows: `"<ComfyUI base folder>/.venv/Scripts/python.exe" -m pytest tests`.
 
-- The pack is loaded with stand-ins for ComfyUI's `server` and `folder_paths` modules (`helpers.py`).
+- The pack is loaded with stand-ins for ComfyUI's `server` and `folder_paths` modules (`helpers.py`),
+  the way ComfyUI loads it: from `__init__.py`, as a package. A test gets the backend package and reaches
+  a function through the module that owns it (`pack.store._load_library`, `pack.transfer._export_libraries`).
 - The four images the scenarios use are generated into a temp folder (`conftest.py`); every test file
   gets its own scratch folder as ComfyUI's user folder. Nothing touches your real library.
 - Each file is one scenario whose tests run in order and build on each other: run whole files
@@ -25,7 +28,8 @@ Files: test_safety.py (backups, damaged-file recovery), test_phase2b.py (repairs
 images, one dialog at a time), test_perf.py (cache, locking, 1000 assets), test_harden.py (local-only
 routes, thumbnails), test_leftovers.py (paths, names, cross-process lock, thumbnail de-dup, dialog errors),
 test_security.py (request trust, trusted folders, no validation leaks, /file hardening),
-test_transfer.py (library export / import: round trip to a second "computer", merge, hostile zips).
+test_transfer.py (library export / import: round trip to a second "computer", merge, hostile zips),
+test_package.py (what ComfyUI sees: the nodes, the web folder, every route).
 
 GitHub runs them on every push and pull request (`.github/workflows/tests.yml`, Windows and Linux), and
 the publish workflow won't publish unless they pass.

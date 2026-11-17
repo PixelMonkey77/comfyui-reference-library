@@ -172,7 +172,8 @@ export const isOutputSlot = (slotEl) => slotEl.classList.contains("lg-slot--outp
 
 /**
  * Runs `fn(output)` on every API prompt the frontend builds (queueing, Export (API)) before it is
- * used. `fn` returns a list of error messages; any error rejects, which stops the queue.
+ * used. `fn` returns a list of error messages; with any error the prompt can't be queued and can't
+ * be written out as JSON (Export (API)). The workflow itself still exports and saves.
  */
 export function wrapGraphToPrompt(fn) {
   // Wrap once, even if the pack is loaded twice (another extension may wrap graphToPrompt after us,
@@ -193,20 +194,38 @@ export function wrapGraphToPrompt(fn) {
       if (errors?.length) {
         blocked.set(res.output, errors);
         blockedJson.set(JSON.stringify(res.output), errors);
+        refuseJson(res.output, errors);
       }
     }
     return res;
   };
   app.graphToPrompt = wrapped;
 
-  // Problems stop queueing only: Export (API) still saves the file (the problems were shown).
   const queue = api.queuePrompt;
   api.queuePrompt = async function (number, data, ...rest) {
     const out = data?.output;
+    // By object first: a blocked prompt refuses to be turned into JSON (refuseJson).
     const errors = out && (blocked.get(out) ?? blockedJson.get(JSON.stringify(out)));
     if (errors) throw new Error(errors.join("\n"));
     return queue.call(this, number, data, ...rest);
   };
+}
+
+/**
+ * Makes an API prompt with tag problems fail when it is written out as JSON, which is how Export (API)
+ * saves it: the file would hold raw @tags and half-wired files, and nobody would see the notice once
+ * it is shared. The frontend builds the workflow and the API prompt in one call for both Export and
+ * Export (API), so the build itself can't be refused: only the API prompt is, and only as JSON.
+ * (Hidden from loops over the prompt's nodes: not enumerable.)
+ */
+function refuseJson(output, errors) {
+  Object.defineProperty(output, "toJSON", {
+    enumerable: false,
+    configurable: true,
+    value() {
+      throw new Error(`Not exported: this workflow's Reference Prompt tags have problems. ${errors.join(" ")}`);
+    },
+  });
 }
 
 // Prompts with tag problems, by object and (if the queue copies the prompt) by content.

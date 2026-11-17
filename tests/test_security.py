@@ -37,31 +37,31 @@ TRUST_CASES = [
 
 @pytest.mark.parametrize("req, want", [c[1:] for c in TRUST_CASES], ids=[c[0] for c in TRUST_CASES])
 def test_request_trust(pack, req, want):
-    assert pack._trust(req) == want
+    assert pack.guard._trust(req) == want
 
 
 # ---------------------------------------------------------------- routes under the guard
 
 def test_dialog_route(pack, img, monkeypatch):
-    monkeypatch.setattr(pack, "_open_file_dialog", lambda *a, **k: [img("Buttons.png")])
-    pick = pack._guard(pack._pick, local=True)
+    monkeypatch.setattr(pack.dialogs, "_open_file_dialog", lambda *a, **k: [img("Buttons.png")])
+    pick = pack.guard._guard(pack.dialogs._pick, local=True)
     r = run(pick(Req(host="attacker.example:8188", body={"kinds": ["image"]})))
     assert r.status == 403 and "127.0.0.1" in r.text, "refused through DNS rebinding"
     assert run(pick(Req(body={"kinds": ["image"]}))).status == 200
 
 
 def test_changes_only_from_this_pc(pack, img):
-    r = run(pack._make(pack._add)(Req(body={"new_library": "Lib_A", "items": [{"path": img("Buttons.png")}, {"path": img("Giftwood.png")}]})))
+    r = run(pack.routes._make(pack.library._add)(Req(body={"new_library": "Lib_A", "items": [{"path": img("Buttons.png")}, {"path": img("Giftwood.png")}]})))
     assert r.status == 200
-    lib = pack._load_library()["libraries"][0]
+    lib = pack.store._load_library()["libraries"][0]
     asset = lib["assets"][0]["id"]
-    for route, body in [(pack._rename, {"id": asset, "name": "X"}), (pack._remove, {"id": asset}),
-                        (pack._lib_rename, {"id": lib["id"], "name": "Y"}), (pack._lib_delete, {"id": lib["id"]})]:
-        assert run(pack._make(route)(Req(OTHER_PC, body=body))).status == 403, route.__name__
+    for route, body in [(pack.library._rename, {"id": asset, "name": "X"}), (pack.library._remove, {"id": asset}),
+                        (pack.library._lib_rename, {"id": lib["id"], "name": "Y"}), (pack.library._lib_delete, {"id": lib["id"]})]:
+        assert run(pack.routes._make(route)(Req(OTHER_PC, body=body))).status == 403, route.__name__
 
 
 def test_library_list(pack):
-    assets = pack._guard(pack._assets)
+    assets = pack.guard._guard(pack.library._assets)
     r = run(assets(Req(OTHER_PC)))
     paths = [a["path"] for a in json.loads(r.text)["assets"]]
     assert r.status == 200 and paths and all(os.sep not in p and "/" not in p for p in paths), "another machine sees file names only"
@@ -72,7 +72,7 @@ def test_library_list(pack):
 # ---------------------------------------------------------------- trusted folders, validation leaks
 
 def test_validation_does_not_leak(pack, scratch, monkeypatch):
-    validate = pack.ReferenceImage.VALIDATE_INPUTS
+    validate = pack.nodes.ReferenceImage.VALIDATE_INPUTS
     monkeypatch.setenv("FAKE_API_KEY", "sk-SECRET-123")
     assert "sk-SECRET" not in str(validate(r"C:\%FAKE_API_KEY%\x.png"))
     assert "sk-SECRET" not in str(validate(os.path.join(scratch, "$FAKE_API_KEY", "x.png")))
@@ -86,7 +86,7 @@ def test_validation_does_not_leak(pack, scratch, monkeypatch):
 
 
 def test_trusted_folders(pack, img, scratch):
-    validate = pack.ReferenceImage.VALIDATE_INPUTS
+    validate = pack.nodes.ReferenceImage.VALIDATE_INPUTS
     private = os.path.join(scratch, "private")
     os.makedirs(private)
     mine, missing = os.path.join(private, "me.png"), os.path.join(private, "missing.png")
@@ -96,10 +96,10 @@ def test_trusted_folders(pack, img, scratch):
     a, b = validate(mine), validate(missing)
     assert "hasn't been used" in a and a.replace("me.png", "X") == b.replace("missing.png", "X")
     with pytest.raises(ValueError, match="hasn't been used"):
-        pack._load_check("image", mine)  # the loader refuses it too, not just validation
+        pack.nodes._load_check("image", mine)  # the loader refuses it too, not just validation
 
     assert validate(img("Buttons.png")) is True, "a folder holding library files is trusted"
-    pack._trust_folders([mine])
+    pack.store._trust_folders([mine])
     assert validate(mine) is True, "after a pick in that folder"
     assert "file not found" in validate(missing), "...and now a missing file says so"
 
@@ -113,10 +113,10 @@ def test_trusted_folders(pack, img, scratch):
     Image.new("RGB", (8, 8)).save(os.path.join(deep, "y.png"))
     assert validate(os.path.join(deep, "y.png")) is True, "ComfyUI's input folder and its subfolders are trusted"
 
-    saved = [os.path.normcase(f) for f in pack._load_library().get("trusted_folders", [])]
+    saved = [os.path.normcase(f) for f in pack.store._load_library().get("trusted_folders", [])]
     assert os.path.normcase(os.path.abspath(private)) in saved and os.path.normcase(os.path.abspath(sub)) not in saved
 
-    trusted = pack._guard(pack._trusted_route, local=True)
+    trusted = pack.guard._guard(pack.library._trusted_route, local=True)
     assert json.loads(run(trusted(Req(query={"path": os.path.join(sub, "x.png")}))).text)["trusted"] is False
     assert run(trusted(Req(OTHER_PC, query={"path": "C:/x.png"}))).status == 403
 
@@ -124,7 +124,7 @@ def test_trusted_folders(pack, img, scratch):
 # ---------------------------------------------------------------- /file
 
 def test_file_route_serves_media_only(pack, scratch):
-    f = pack._library_file()
+    f = pack.store._library_file()
     with open(f, encoding="utf-8") as fh:
         d = json.load(fh)
     page = os.path.join(scratch, "evil.html")
@@ -133,7 +133,7 @@ def test_file_route_serves_media_only(pack, scratch):
     d["libraries"][0]["assets"].append({"id": "evil", "name": "evil", "path": page, "kind": "image"})
     with open(f, "w", encoding="utf-8") as fh:
         json.dump(d, fh)
-    serve = pack._guard(pack._file)
+    serve = pack.guard._guard(pack.library._file)
     assert run(serve(Req(query={"id": "evil"}))).status == 404
-    good = next(a for a in pack._load_library()["libraries"][0]["assets"] if a["path"].endswith(".png"))
+    good = next(a for a in pack.store._load_library()["libraries"][0]["assets"] if a["path"].endswith(".png"))
     assert run(serve(Req(query={"id": good["id"]}))).headers.get("X-Content-Type-Options") == "nosniff"

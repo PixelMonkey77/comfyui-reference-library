@@ -8,61 +8,61 @@ def _names(data):
 
 
 def _folder(pack):
-    return os.path.dirname(pack._library_file())
+    return os.path.dirname(pack.store._library_file())
 
 
 def test_backup_holds_previous_version(pack, img):
-    data = pack._load_library()
-    pack._add(data, {"new_library": "Lib A", "items": [{"path": img("Buttons.png")}]})
-    data = pack._load_library()
-    pack._add(data, {"library_id": data["libraries"][0]["id"], "items": [{"path": img("Giftwood.png")}]})
-    with open(pack._library_file() + ".bak", encoding="utf-8") as f:
+    data = pack.store._load_library()
+    pack.library._add(data, {"new_library": "Lib A", "items": [{"path": img("Buttons.png")}]})
+    data = pack.store._load_library()
+    pack.library._add(data, {"library_id": data["libraries"][0]["id"], "items": [{"path": img("Giftwood.png")}]})
+    with open(pack.store._library_file() + ".bak", encoding="utf-8") as f:
         bak = json.load(f)
     assert [a["name"] for a in bak["libraries"][0]["assets"]] == ["Buttons"]
 
 
 def test_damaged_file_recovered_from_backup(pack):
-    f = pack._library_file()
+    f = pack.store._library_file()
     with open(f, "w", encoding="utf-8") as fh:
         fh.write('{"version": 2, "libraries": [ {"id": "x", "name": "Lib_A", "assets": [ TRUNCATED')
-    data = pack._load_library()
+    data = pack.store._load_library()
     assert _names(data) == [("Lib_A", ["Buttons"])]
     assert any(x.startswith("library.json.corrupt-") for x in os.listdir(_folder(pack))), "damaged copy kept"
-    assert pack._RECOVERY_NOTE
-    assert "warning" in pack._library_payload(data), "the warning is sent"
-    assert "warning" not in pack._library_payload(data), "...once"
+    assert pack.store._RECOVERY_NOTE
+    assert "warning" in pack.store._library_payload(data), "the warning is sent"
+    assert "warning" not in pack.store._library_payload(data), "...once"
 
 
 def test_damaged_file_without_backup_is_kept(pack):
-    f, d = pack._library_file(), _folder(pack)
+    f, d = pack.store._library_file(), _folder(pack)
     for x in os.listdir(d):
         if x.endswith(".bak"):
             os.remove(os.path.join(d, x))
     with open(f, "w", encoding="utf-8") as fh:
         fh.write("not json at all")
-    assert pack._load_library()["libraries"] == []
+    assert pack.store._load_library()["libraries"] == []
     assert sum(x.startswith("library.json.corrupt-") for x in os.listdir(d)) == 2, "nothing deleted"
 
 
 def test_ids_are_random(pack, img):
     """Replace a file, then add the original path again: it gets a different id."""
-    data = pack._load_library()
-    pack._add(data, {"new_library": "Lib B", "items": [{"path": img("Buttons.png")}]})
-    data = pack._load_library()
+    data = pack.store._load_library()
+    pack.library._add(data, {"new_library": "Lib B", "items": [{"path": img("Buttons.png")}]})
+    data = pack.store._load_library()
     first = data["libraries"][0]["assets"][0]["id"]
-    pack._replace(data, {"id": first, "path": img("CAPIBARA.jpg"), "name": "Capy"})
-    data = pack._load_library()
-    pack._add(data, {"library_id": data["libraries"][0]["id"], "items": [{"path": img("Buttons.png")}]})
-    ids = [a["id"] for a in pack._load_library()["libraries"][0]["assets"]]
+    pack.library._replace(data, {"id": first, "path": img("CAPIBARA.jpg"), "name": "Capy"})
+    data = pack.store._load_library()
+    pack.library._add(data, {"library_id": data["libraries"][0]["id"], "items": [{"path": img("Buttons.png")}]})
+    ids = [a["id"] for a in pack.store._load_library()["libraries"][0]["assets"]]
     assert len(ids) == 2 and len(set(ids)) == 2
 
 
 def test_malformed_entries_dropped(pack):
-    with open(pack._library_file(), "w", encoding="utf-8") as fh:
+    with open(pack.store._library_file(), "w", encoding="utf-8") as fh:
         json.dump({"version": 2, "libraries": [
             {"id": "L", "name": "Lib_C", "assets": [{"id": "ok1", "name": "Fine", "path": "C:/x.png"}, {"name": "no id"}, "junk"]},
             {"name": "no id lib"}]}, fh)
-    assert ("Lib_C", ["Fine"]) in _names(pack._load_library())
+    assert ("Lib_C", ["Fine"]) in _names(pack.store._load_library())
 
 
 def test_locked_file_save_is_retried(pack, monkeypatch):
@@ -74,7 +74,7 @@ def test_locked_file_save_is_retried(pack, monkeypatch):
             raise PermissionError("locked")
         return real(a, b)
 
-    monkeypatch.setattr(pack.os, "replace", flaky)
-    pack._save_library({"version": 2, "libraries": []}, backup=False)
+    monkeypatch.setattr(pack.store.os, "replace", flaky)
+    pack.store._save_library({"version": 2, "libraries": []}, backup=False)
     assert calls["n"] == 2
     assert not [x for x in os.listdir(_folder(pack)) if x.endswith(".tmp")]

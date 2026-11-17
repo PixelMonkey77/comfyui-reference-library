@@ -29,7 +29,7 @@ def share(tmp_path_factory):
 
 
 def _lib(pack, name):
-    return next(l for l in pack._load_library()["libraries"] if l["name"] == name)
+    return next(l for l in pack.store._load_library()["libraries"] if l["name"] == name)
 
 
 def _manifest(path):
@@ -52,7 +52,7 @@ def _make_zip(path, manifest, files):
 
 def _import(pack, path):
     """Imports through the route; returns (status, the per-library summaries or the error text)."""
-    r = run(pack._guard(pack._import_route, local=True)(Req(body={"path": path})))
+    r = run(pack.guard._guard(pack.transfer._import_route, local=True)(Req(body={"path": path})))
     body = json.loads(r.text)
     return r.status, body["imported"]["libraries"] if r.status == 200 else body["error"]
 
@@ -64,13 +64,13 @@ def test_export_one_library(pack, img, scratch, share):
     twin, gone = os.path.join(twin_dir, "Buttons.png"), os.path.join(twin_dir, "Gone.png")
     shutil.copy(img("Biscuit.png"), twin)
     shutil.copy(img("Giftwood.png"), gone)
-    r = pack._add(pack._load_library(), {"new_library": "Team_Refs", "items": [
+    r = pack.library._add(pack.store._load_library(), {"new_library": "Team_Refs", "items": [
         {"path": img("Buttons.png")}, {"path": img("Giftwood.png")}, {"path": twin}, {"path": gone}]})
     assert len(r["added"]) == 4
     os.remove(gone)
 
     lib = _lib(pack, "Team_Refs")
-    out = pack._export_libraries([lib["id"]], share)
+    out = pack.transfer._export_libraries([lib["id"]], share)
     assert out["path"] == os.path.join(share, "Team_Refs.zip"), "one library: the zip is named after it, in the chosen folder"
     assert out["libraries"] == [{"name": "Team_Refs", "files": 3, "skipped": ["Gone"]}], "a file missing on disk is left out and named"
 
@@ -86,20 +86,20 @@ def test_export_one_library(pack, img, scratch, share):
 
 
 def test_export_never_overwrites(pack, share):
-    again = pack._export_libraries([state["lib"]["id"]], share)
+    again = pack.transfer._export_libraries([state["lib"]["id"]], share)
     assert os.path.basename(again["path"]) == "Team_Refs_2.zip" and os.path.exists(state["zip"])
     assert not [f for f in os.listdir(share) if f.endswith(".part")]
 
 
 def test_export_several_libraries_in_one_zip(pack, img, scratch, share):
-    pack._add(pack._load_library(), {"new_library": "Props", "items": [{"path": img("CAPIBARA.jpg")}, {"path": img("Buttons.png")}]})
+    pack.library._add(pack.store._load_library(), {"new_library": "Props", "items": [{"path": img("CAPIBARA.jpg")}, {"path": img("Buttons.png")}]})
     lonely = os.path.join(scratch, "lonely.png")
     shutil.copy(img("Biscuit.png"), lonely)
-    pack._add(pack._load_library(), {"new_library": "Ghosts", "items": [{"path": lonely}]})
+    pack.library._add(pack.store._load_library(), {"new_library": "Ghosts", "items": [{"path": lonely}]})
     os.remove(lonely)
     ids = [_lib(pack, n)["id"] for n in ("Ghosts", "Props", "Team_Refs")]
 
-    out = pack._export_libraries(ids, share)
+    out = pack.transfer._export_libraries(ids, share)
     assert os.path.basename(out["path"]) == "Reference_Libraries.zip"
     assert [(l["name"], l["files"]) for l in out["libraries"]] == [("Team_Refs", 3), ("Props", 2)], "in library order"
     assert out["empty"] == ["Ghosts"], "a library with no file left on disk is left out and named"
@@ -121,8 +121,8 @@ def test_export_refusals(pack, share, scratch):
         ([state["lib"]["id"]], "relative/folder", 400, "folder"),
         ([state["lib"]["id"]], state["zip"], 400, "folder"),             # a file, not a folder
     ]:
-        with pytest.raises(pack.LibError) as e:
-            pack._export_libraries(ids, folder)
+        with pytest.raises(pack.store.LibError) as e:
+            pack.transfer._export_libraries(ids, folder)
         assert (e.value.status, e.value.field) == (status, field), (ids, folder)
     assert sorted(os.listdir(share)) == files, "no half-written zip left"
 
@@ -131,7 +131,7 @@ def test_import_on_another_computer(pack, other):
     status, done = _import(pack, state["zip"])  # same id here: nothing new
     assert status == 200 and done[0]["added"] == [] and not done[0]["new"]
 
-    r = run(other._guard(other._import_route, local=True)(Req(body={"path": state["zip"]})))
+    r = run(other.guard._guard(other.transfer._import_route, local=True)(Req(body={"path": state["zip"]})))
     body = json.loads(r.text)
     assert r.status == 200, r.text
     (done,) = body["imported"]["libraries"]
@@ -146,7 +146,7 @@ def test_import_on_another_computer(pack, other):
     for mine, theirs in zip(src["assets"], lib["assets"]):
         with open(mine["path"], "rb") as a, open(theirs["path"], "rb") as b:
             assert a.read() == b.read()
-        assert other.ReferenceImage.VALIDATE_INPUTS(theirs["path"]) is True, "the loader nodes may read imported files"
+        assert other.nodes.ReferenceImage.VALIDATE_INPUTS(theirs["path"]) is True, "the loader nodes may read imported files"
 
 
 def test_reimport_adds_nothing(other):
@@ -167,9 +167,9 @@ def test_several_libraries_import_and_merge(pack, other, img, share):
     assert sorted(os.listdir(root)) == ["Props", "Team_Refs"], "each library unpacks into its own folder"
 
     # A newer export of Team_Refs, after the other computer renamed one of its assets: only the new file arrives.
-    pack._add(pack._load_library(), {"library_id": state["lib"]["id"], "items": [{"path": img("CAPIBARA.jpg")}]})
-    newer = pack._export_libraries([state["lib"]["id"]], share)["path"]
-    other._rename(other._load_library(), {"id": _lib(other, "Team_Refs")["assets"][0]["id"], "name": "My_Buttons"})
+    pack.library._add(pack.store._load_library(), {"library_id": state["lib"]["id"], "items": [{"path": img("CAPIBARA.jpg")}]})
+    newer = pack.transfer._export_libraries([state["lib"]["id"]], share)["path"]
+    other.library._rename(other.store._load_library(), {"id": _lib(other, "Team_Refs")["assets"][0]["id"], "name": "My_Buttons"})
     _, (done,) = _import(other, newer)
     assert not done["new"] and len(done["added"]) == 1 and done["already"] == 3
     assert [a["name"] for a in _lib(other, "Team_Refs")["assets"]] == ["My_Buttons", "Giftwood", "Buttons_2", "CAPIBARA"]
@@ -178,7 +178,7 @@ def test_several_libraries_import_and_merge(pack, other, img, share):
 def test_deleted_library_reimport_reuses_files(other):
     folder = os.path.join(other.folder_paths_stub.get_input_directory(), "reference_library")
     before = _files_under(folder)
-    other._lib_delete(other._load_library(), {"id": state["lib"]["id"]})
+    other.library._lib_delete(other.store._load_library(), {"id": state["lib"]["id"]})
     _, (done,) = _import(other, state["zip"])
     assert done["new"] and len(done["added"]) == 3
     assert _files_under(folder) == before, "identical files already unpacked are used again, not copied"
@@ -186,23 +186,23 @@ def test_deleted_library_reimport_reuses_files(other):
 
 def test_name_clash_gets_a_new_name(tmp_path_factory, img):
     third = load_pack(str(tmp_path_factory.mktemp("third_pc")))
-    third._add(third._load_library(), {"new_library": "team_refs", "items": [{"path": img("Biscuit.png")}]})
+    third.library._add(third.store._load_library(), {"new_library": "team_refs", "items": [{"path": img("Biscuit.png")}]})
     _, (done,) = _import(third, state["zip"])
     assert done["new"] and done["name"] == "Team_Refs_2" and done["wanted_name"] == "Team_Refs"
-    assert sorted(l["name"] for l in third._load_library()["libraries"]) == ["Team_Refs_2", "team_refs"]
+    assert sorted(l["name"] for l in third.store._load_library()["libraries"]) == ["Team_Refs_2", "team_refs"]
 
 
 def test_ids_already_in_use_are_reissued(tmp_path_factory, img):
     """An unrelated library that happens to hold an asset with an exported id keeps it."""
     fourth = load_pack(str(tmp_path_factory.mktemp("fourth_pc")))
     taken = state["lib"]["assets"][0]["id"]
-    f = fourth._library_file()
+    f = fourth.store._library_file()
     os.makedirs(os.path.dirname(f))
     with open(f, "w", encoding="utf-8") as fh:
         json.dump({"version": 2, "libraries": [{"id": "L9", "name": "Mine", "assets": [
             {"id": taken, "name": "Keep", "path": img("Biscuit.png"), "kind": "image"}]}]}, fh)
     _import(fourth, state["both"])
-    ids = [l["id"] for l in fourth._load_library()["libraries"]] + [a["id"] for _, a in fourth._all_assets(fourth._load_library())]
+    ids = [l["id"] for l in fourth.store._load_library()["libraries"]] + [a["id"] for _, a in fourth.store._all_assets(fourth.store._load_library())]
     assert len(ids) == 3 + 6 and len(set(ids)) == len(ids) and _lib(fourth, "Mine")["assets"][0]["id"] == taken
 
 
@@ -216,7 +216,7 @@ def test_first_format_still_imports(tmp_path_factory, img):
                   "assets": [{"id": "a1", "name": "Btn", "kind": "image", "file": "Buttons.png"}]}, {"files/Buttons.png": png})
     status, (done,) = _import(fifth, z)
     assert status == 200 and done["new"] and done["name"] == "Old"
-    assert [(l["id"], [a["name"] for a in l["assets"]]) for l in fifth._load_library()["libraries"]] == [("old-lib", ["Btn"])]
+    assert [(l["id"], [a["name"] for a in l["assets"]]) for l in fifth.store._load_library()["libraries"]] == [("old-lib", ["Btn"])]
 
 
 V2 = {"format": FORMAT, "version": 2}
@@ -236,10 +236,10 @@ BAD_ZIPS = {
 
 @pytest.mark.parametrize("manifest, message", BAD_ZIPS.values(), ids=BAD_ZIPS.keys())
 def test_bad_zip_refused(other, tmp_path, manifest, message):
-    before = other._load_library()
+    before = other.store._load_library()
     status, error = _import(other, _make_zip(str(tmp_path / "bad.zip"), manifest, {}))
     assert status == 400 and message in error
-    assert other._load_library() == before
+    assert other.store._load_library() == before
 
 
 def test_not_a_zip_refused(other, tmp_path, img):
@@ -269,7 +269,7 @@ def test_hostile_zip_stays_in_its_folder(tmp_path_factory, img):
     assert status == 200 and len(evil["added"]) == 1
     assert sorted(x["name"] for x in evil["rejected"]) == ["2 damaged entries", "abs", "absent", "climb", "drive", "fake", "page"]
     assert hollow["failed"] and hollow["library"] is None and hollow["name"] == "Hollow", "no empty library is made"
-    libs = victim._load_library()["libraries"]
+    libs = victim.store._load_library()["libraries"]
     assert [(l["name"], [a["name"] for a in l["assets"]]) for l in libs] == [("Evil", ["good"])]
     folder = os.path.join(victim.folder_paths_stub.get_input_directory(), "reference_library", "Evil")
     new = set(_files_under(victim_root)) - before
@@ -278,7 +278,7 @@ def test_hostile_zip_stays_in_its_folder(tmp_path_factory, img):
 
 
 def test_routes_are_local_only(pack, other, share):
-    export, imp = pack._guard(pack._export_route, local=True), other._guard(other._import_route, local=True)
+    export, imp = pack.guard._guard(pack.transfer._export_route, local=True), other.guard._guard(other.transfer._import_route, local=True)
     ids = {"ids": [state["lib"]["id"]], "folder": share}
     assert run(export(Req(OTHER_PC, body=ids))).status == 403
     assert run(export(Req(host="attacker.example:8188", body=ids))).status == 403
@@ -296,9 +296,9 @@ def test_export_asks_for_the_folder(pack, share, tmp_path, monkeypatch):
         asked.append((initial_dir, folder))
         return asked_answer
 
-    monkeypatch.setattr(pack, "_open_file_dialog", dialog)
-    monkeypatch.setitem(pack._LAST_EXPORT_DIR, "path", "")
-    export = pack._guard(pack._export_route, local=True)
+    monkeypatch.setattr(pack.dialogs, "_open_file_dialog", dialog)
+    monkeypatch.setitem(pack.transfer._LAST_EXPORT_DIR, "path", "")
+    export = pack.guard._guard(pack.transfer._export_route, local=True)
     asked_answer = []
     r = run(export(Req(body={"ids": [state["lib"]["id"]]})))
     assert r.status == 200 and json.loads(r.text) == {"exported": None}, "cancelled: nothing happens"
@@ -317,8 +317,8 @@ def test_import_asks_for_the_zip(other, monkeypatch):
         asked.update(multi=multi, filters=filters, exts=exts, folder=folder)
         return asked.get("answer", [])
 
-    monkeypatch.setattr(other, "_open_file_dialog", dialog)
-    imp = other._guard(other._import_route, local=True)
+    monkeypatch.setattr(other.dialogs, "_open_file_dialog", dialog)
+    imp = other.guard._guard(other.transfer._import_route, local=True)
     r = run(imp(Req()))
     assert r.status == 200 and json.loads(r.text) == {"imported": None}, "cancelled: nothing happens"
     assert asked["multi"] is False and asked["folder"] is False and asked["exts"] == ["zip"] and asked["filters"][0][1] == ["*.zip"]
@@ -336,10 +336,10 @@ def test_folder_dialog_command(pack, monkeypatch):
         return types.SimpleNamespace(returncode=0, stdout=b"/picked/folder\n", stderr=b"")
 
     monkeypatch.delenv("LIBRARY_IMAGE_FAKE_DIALOG", raising=False)
-    monkeypatch.setattr(pack.subprocess, "run", fake_run)
-    monkeypatch.setattr(pack.subprocess, "CREATE_NO_WINDOW", 0, raising=False)
-    for platform, script in [("win32", pack._PS_FOLDER_DIALOG), ("darwin", pack._MAC_FOLDER_DIALOG), ("linux", pack._TK_FOLDER_DIALOG)]:
-        monkeypatch.setattr(pack.sys, "platform", platform)
-        assert pack._open_file_dialog(os.getcwd(), folder=True) == ["/picked/folder"]
+    monkeypatch.setattr(pack.dialogs.subprocess, "run", fake_run)
+    monkeypatch.setattr(pack.dialogs.subprocess, "CREATE_NO_WINDOW", 0, raising=False)
+    for platform, script in [("win32", pack.dialogs._PS_FOLDER_DIALOG), ("darwin", pack.dialogs._MAC_FOLDER_DIALOG), ("linux", pack.dialogs._TK_FOLDER_DIALOG)]:
+        monkeypatch.setattr(pack.dialogs.sys, "platform", platform)
+        assert pack.dialogs._open_file_dialog(os.getcwd(), folder=True) == ["/picked/folder"]
         assert script in ran["cmd"] and ran["env"]["LI_INIT"] == os.getcwd()
-        assert pack._FOLDER_PROMPT in script
+        assert pack.dialogs._FOLDER_PROMPT in script
