@@ -1,6 +1,7 @@
 # Publishes a new version to the Comfy Registry (registry.comfy.org), which ComfyUI Manager installs from.
 # Runs when pyproject.toml changes on main: bump `version` there to release. Needs the repo secret
 # REGISTRY_ACCESS_TOKEN (an API key from your publisher page on the registry).
+# Nothing is published unless the tests pass.
 name: Publish to Comfy Registry
 on:
   workflow_dispatch:
@@ -12,10 +13,15 @@ on:
 
 permissions:
   issues: write
+  contents: read
 
 jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   publish-node:
     name: Publish Custom Node to registry
+    needs: tests
     runs-on: ubuntu-latest
     if: ${{ github.repository_owner == 'PixelMonkey77' }}
     steps:
