@@ -17,6 +17,7 @@ def test_nodes_and_web_folder(pack):
     assert root.WEB_DIRECTORY == "./web"
     assert set(root.NODE_CLASS_MAPPINGS) == set(root.NODE_DISPLAY_NAME_MAPPINGS)
     assert {"ReferencePrompt", "ReferenceImage", "ReferenceVideo", "ReferenceAudio", "ReferenceImagesBatch",
+            "ReferenceLibraryImage", "ReferenceLibraryVideo", "ReferenceLibraryAudio",
             "TaggedPrompt", "LibraryImage", "LibraryVideo", "LibraryAudio", "LibraryImageBatch"} == set(root.NODE_CLASS_MAPPINGS)
     for name, cls in root.NODE_CLASS_MAPPINGS.items():
         assert cls.CATEGORY == "Reference Library" and callable(getattr(cls(), cls.FUNCTION)), name

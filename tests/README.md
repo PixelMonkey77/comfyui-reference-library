@@ -29,10 +29,20 @@ images, one dialog at a time), test_perf.py (cache, locking, 1000 assets), test_
 routes, thumbnails), test_leftovers.py (paths, names, cross-process lock, thumbnail de-dup, dialog errors),
 test_security.py (request trust, trusted folders, no validation leaks, /file hardening),
 test_transfer.py (library export / import: round trip to a second "computer", merge, hostile zips),
-test_package.py (what ComfyUI sees: the nodes, the web folder, every route).
+test_package.py (what ComfyUI sees: the nodes, the web folder, every route),
+test_library_nodes.py (the nodes that take a library file by id / library / name, not by path).
 
 GitHub runs them on every push and pull request (`.github/workflows/tests.yml`, Windows and Linux), and
 the publish workflow won't publish unless they pass.
+
+## Queue binding on the example workflow (bind_example.mjs)
+
+    node tests/bind_example.mjs
+
+Runs `web/tp_bind.js` in Node, with stand-ins for ComfyUI's `app` and `api` and a canvas rebuilt from
+`example_workflows/Reference_Library_example.json`: which files are wired to which model inputs, that tags
+become "image N" for every model, that the API prompt holds no disk paths, that a missing library stops the
+queue, and that a workflow without a Reference Prompt is left untouched. No ComfyUI needed.
 
 ## Frontend regression harness (harness.js)
 14 scenarios (incl. a workflow with the ids from before the rename): strip/ink on the canvas + the API prompt binding (incl. claims Test 01/02, string chains,

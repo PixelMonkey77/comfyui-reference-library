@@ -7,7 +7,7 @@ redone after every UI change with one command:
 node tools/screenshots/make_screenshots.mjs
 ```
 
-It writes `00_…png` to `17_…png` into `docs/images/` (the images the main README shows) using the demo images in
+It writes `00_…png` to `19_…png` into `docs/images/` (the images the main README shows) using the demo images in
 `../Resources` (next to the repo). They are found by file name, flat or in subfolders; which file plays which
 part is set in `DEMO` at the top of the script:
 

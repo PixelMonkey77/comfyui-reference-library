@@ -49,6 +49,7 @@ the same two nodes, however many references you use.
 - [Outputs: every tagged file, and a batch](#outputs-every-tagged-file-and-a-batch)
 - [Libraries in detail](#libraries-in-detail)
 - [Share a library: export and import](#share-a-library-export-and-import)
+- [Run a workflow without the interface (API)](#run-a-workflow-without-the-interface-api)
 - [Reference Image / Video / Audio nodes](#reference-image--video--audio-nodes)
 - [Safety](#safety)
 - [Install](#install)
@@ -412,11 +413,15 @@ prompt doesn't name.
 
 A workflow stores `@names`, not files, so it needs its libraries on every computer it runs on.
 
+<img src="docs/images/18_export_and_import.png" width="720" alt="The Libraries menu: an export button next to each library, and Import library… at the bottom">
+
 **Export:** in a Reference Prompt's **Libraries** menu, click the export button (arrow out of a tray) next
 to a library. A list of all your libraries opens with that one ticked; tick any others that should travel
 with it. **Choose folder and export…** then opens your system's folder dialog (Windows, macOS and Linux),
 and the ticked libraries are saved there together as one zip: `<Library name>.zip` for a single library,
 `Reference_Libraries.zip` for several. An existing zip is never overwritten (`<name>_2.zip`, …).
+
+<img src="docs/images/19_export_libraries.png" width="560" alt="The export dialog: a list of libraries with checkboxes, and Choose folder and export…">
 
 The zip holds a copy of every file plus the libraries' and files' names. No folder names from your disk are
 in it. Files that are missing on disk are left out, and the notice names them.
@@ -432,7 +437,41 @@ in it. Files that are missing on disk are left out, and the notice names them.
 - Only images, videos and audio are unpacked, and only into that folder, whatever the zip says.
 
 Export and import work only on the computer running ComfyUI, like every other change to a library.
-Workflows queued without the interface (API, headless) still need their tags resolved in the browser first.
+
+## Run a workflow without the interface (API)
+
+**Export (API)** in the interface saves the workflow as ComfyUI runs it: the tags are already turned into
+wiring, and every tagged library file is a small node that names the file by library, name and id:
+
+```json
+"libimg_1": {
+  "class_type": "ReferenceLibraryImage",
+  "inputs": { "name": "Karl", "library": "Demo", "asset": "fbda8ea52ba9" }
+}
+```
+
+There are no folder names in it, so the file is safe to share, and it runs on any ComfyUI that has the
+library, whatever folder its files are in there:
+
+1. **Bring the library over once.** [Export it](#share-a-library-export-and-import) and import it on the
+   computer that runs the workflow: in the interface, or from that computer's own command line:
+
+   ```
+   curl -X POST http://127.0.0.1:8188/library_image/library/import -H "Content-Type: application/json" -d "{\"path\": \"/full/path/to/Demo.zip\"}"
+   ```
+2. **Queue the exported file** the usual way (`POST /prompt`).
+
+[`example_workflows/api/Reference_Library_example_API.json`](example_workflows/api/Reference_Library_example_API.json)
+is the [example workflow](#example-workflow) exported this way.
+
+- **To use another library file from a script,** change `name` (and `library`) on that node and leave
+  `asset` out: the file is found by its names. With `asset`, the id decides. `ReferenceLibraryVideo` and
+  `ReferenceLibraryAudio` work the same way.
+- A file that isn't in that computer's libraries stops the run with a message that names it; a library named
+  in the node is never swapped for another one that happens to have a file of that name.
+- `@tags` become wiring when a workflow is queued or exported **in the interface**. A hand-written API
+  prompt with `@Karl` in its text is not interpreted by the server: use the node above.
+- Reference Image / Video / Audio nodes you place on the canvas yourself still hold the path you typed.
 
 ## Reference Image / Video / Audio nodes
 

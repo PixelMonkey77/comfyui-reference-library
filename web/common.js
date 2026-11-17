@@ -23,11 +23,15 @@ export const portNum = (name, kind = "image") => {
 export const mediaLabel = (portName, kind, n) =>
   /reference_/.test(portName ?? "") ? `${kind[0].toUpperCase()}${kind.slice(1)} ${n}` : `${kind} ${n}`;
 
-/** Hidden loader node used for each kind of library asset at queue time. */
+/**
+ * Hidden loader node used for each kind of library asset at queue time. These take the file by its
+ * library id and names, not by path (the server looks the path up), so a queued or exported API
+ * prompt holds no folder names and runs on any computer whose library has the file.
+ */
 export const LOADERS = {
-  image: { type: "ReferenceImage", pathKey: "image_path" },
-  video: { type: "ReferenceVideo", pathKey: "path" },
-  audio: { type: "ReferenceAudio", pathKey: "path" },
+  image: "ReferenceLibraryImage",
+  video: "ReferenceLibraryVideo",
+  audio: "ReferenceLibraryAudio",
 };
 
 export const assetKind = (asset) => asset?.kind ?? "image";

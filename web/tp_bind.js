@@ -60,11 +60,10 @@ export function bindPrompt(output) {
   const loaders = new Map();
   const loaderFor = (asset) => {
     if (!loaders.has(asset.id)) {
-      const loader = LOADERS[assetKind(asset)];
       const loaderId = newId("libimg");
       output[loaderId] = {
-        class_type: loader.type,
-        inputs: { [loader.pathKey]: asset.path, name: asset.name },
+        class_type: LOADERS[assetKind(asset)],
+        inputs: { name: asset.name, asset: asset.id, library: library.libName(asset.library) },
         _meta: { title: `@${asset.name}` },
       };
       loaders.set(asset.id, loaderId);
@@ -240,12 +239,16 @@ export function bindPrompt(output) {
   // Reference Prompts whose outputs are used but whose text reached no model they could fill (e.g. the
   // text goes to Nano Banana Pro, which takes the "images" batch): tags become "image 1", "image 2"… in
   // output order, the same order as the batch and the "(1)" on the outputs.
+  // The same for one that also feeds a model it could fill: that model reads a rewritten copy (above),
+  // and the batch model still reads this node, whose text would otherwise go out with its raw @tags.
   for (const [id, plan] of standalone) {
     const src = output[id];
     const tpUi = nodeForExecId(id);
-    if (!src || bound.has(id)) continue;
+    if (!src) continue;
+    const filled = bound.has(id); // its problems were reported with the model it fills
+    if (filled && !stringsOf(src).some((t) => mentionsIn(t).length)) continue; // rewritten in place: nothing left
     bound.add(id);
-    errors.push(...planProblems(plan, tpUi.title, tpUi));
+    if (!filled) errors.push(...planProblems(plan, tpUi.title, tpUi));
     // The model reading the text must also get the files: one of the outputs has to reach it
     // (directly, or through resize / batch nodes). Outputs that only go to previews don't count.
     const readers = textReaders(output, id);

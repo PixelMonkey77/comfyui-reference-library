@@ -21,7 +21,7 @@ const loadImg = (file, x, y, g) => { const n = add("LoadImage", x, y, g); n.widg
 const chips = (tp) => [...(document.querySelectorAll(`.lg-node[data-node-id="${tp.id}"] .tp-chip`))]
   .map((c) => `${c.dataset.tag}[${c.querySelector(".tp-idx")?.textContent}]`).join(" ");
 const ink = (tp) => [...(document.querySelectorAll(`.lg-node[data-node-id="${tp.id}"] .tp-ink`))].map((s) => `${s.textContent}=${s.dataset.state}`).join(" ");
-const describe = (o, id) => { const n = o[id]; if (!n) return `?${id}`; return `${n.class_type}:${String(n.inputs.image ?? n.inputs.image_path ?? n.inputs.path ?? "").split(/[\\/]/).pop()}`; };
+const describe = (o, id) => { const n = o[id]; if (!n) return `?${id}`; return `${n.class_type}:${/^ReferenceLibrary/.test(n.class_type) ? `${n.inputs.library}/${n.inputs.name}` : String(n.inputs.image ?? n.inputs.image_path ?? n.inputs.path ?? "").split(/[\\/]/).pop()}`; };
 async function api() {
   try {
     const { output: o } = await app.graphToPrompt();

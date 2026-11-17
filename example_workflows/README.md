@@ -22,6 +22,10 @@ The workflow needs two files from the `assets/` folder:
 
 Then queue. The three model nodes are partner (API) nodes and use credits.
 
+`api/Reference_Library_example_API.json` is the same workflow as **Export (API)** saves it, for running
+without the interface: see "Run a workflow without the interface (API)" in the main README. It needs the same
+two files; `Donut.png` goes in `ComfyUI/input`. (It is in a subfolder so ComfyUI doesn't list it as a template.)
+
 ## What it shows
 
 - **No image wires to the models.** Nano Banana 2.1 and Seedream have `image_1`, `image_2`… inputs: the

@@ -645,6 +645,28 @@ async function walkthrough() {
     { target: SLN, text: "A Load Image with the slice,\nplugged into image_1", side: "top", dx: 40, dy: 40 },
     { target: { sel: "{node} .tp-ink", index: 0 }, text: "Its tag replaced\n@frog_warrior", side: "top", from: NODE, dx: 150, dy: 24 },
   ]);
+
+  // 18. Export and import: both are in the Libraries menu
+  await click({ sel: ".tp-libs" });
+  await sleep(500);
+  const PANEL = { sel: ".tpl-panel" };
+  await shot("18_export_and_import", [NODE, PANEL], [
+    { target: { sel: ".tpl-row button[title^='Export']", index: 0 }, text: "Export a library\nas a zip", side: "right", from: PANEL, dx: 60 },
+    { target: { sel: ".tpl-new", index: 1 }, text: "Import a zip made\non another computer", side: "right", from: PANEL, dx: 60, dy: 50 },
+  ]);
+
+  // 19. Export: the library whose button was clicked is ticked; tick others to send them along
+  await click({ sel: ".tpl-row button[title^='Export']", index: 0 });
+  await sleep(700);
+  await click({ sel: ".tpx-row input", index: 1 });
+  await sleep(400);
+  await shot("19_export_libraries", [MODAL], [
+    { target: { sel: ".tpx-row", index: 0 }, text: "The library you\nclicked is ticked", side: "left", from: MODAL, dx: 40 },
+    { target: { sel: ".tpx-row", index: 1 }, text: "Tick others to put\nthem in the same zip", side: "left", from: MODAL, dx: 40, dy: 50 },
+    { target: btn("Choose folder and export…"), text: "Pick a folder: one zip\nis saved there", side: "right", from: MODAL, dx: 40 },
+  ]);
+  await click(btn("Cancel"));
+  await sleep(400);
 }
 
 // ---------------------------------------------------------------- main

@@ -70,7 +70,8 @@ def _export_libraries(lib_ids, raw_folder):
     done, empty = [], []
     try:
         # Stored, not compressed: images, video and audio already are.
-        with zipfile.ZipFile(tmp, "w", zipfile.ZIP_STORED, allowZip64=True) as zf:
+        # strict_timestamps off: a file dated before 1980 (zip's first year) is stored as 1980, not refused.
+        with zipfile.ZipFile(tmp, "w", zipfile.ZIP_STORED, allowZip64=True, strict_timestamps=False) as zf:
             for lib in libs:
                 entries, skipped, names = [], [], set()
                 for a in lib["assets"]:

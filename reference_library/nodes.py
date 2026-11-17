@@ -177,6 +177,91 @@ class ReferenceAudio:
         return _validate("audio", path, name)
 
 
+# ---------------------------------------------------------------- library files, by identity
+# What the Reference Prompt adds to a queued prompt for each tagged library file. These nodes name
+# the file by its library id and names, never by a disk path: an exported API prompt carries no
+# folder names, and runs on any computer whose library has the file (ids survive export / import).
+
+def _resolve_asset(kind, asset="", library="", name=""):
+    """(the library's record of the file, None), or (None, why not). Found by id; if this computer's
+    library doesn't know the id (or the prompt was written by hand), by library name + file name; with
+    no library named, by file name alone when exactly one library file has it. A named library is
+    never swapped for another one: the run must not quietly use a different file."""
+    label = "Reference Library: " + (f"@{name}" if name else "a library file") + (f" (library {library})" if library else "")
+    try:
+        with store._LIB_LOCK:
+            pairs = store._all_assets(store._load_library(readonly=True))
+    except store.LibraryUnreadable as e:
+        return None, f"{label}: {e}"
+    hits = [(lib, a) for lib, a in pairs if asset and a["id"] == asset]
+    if not hits and name:
+        hits = [(lib, a) for lib, a in pairs if store._fold(a["name"]) == store._fold(name)
+                and (not library or store._fold(lib["name"]) == store._fold(library))]
+        if len(hits) > 1:
+            return None, (f"{label} is in more than one library here ({', '.join(lib['name'] for lib, _ in hits)}). "
+                          "Name the library, or give the file's id.")
+    if not hits:
+        return None, (f"{label} isn't in this computer's libraries. Import the library that has it "
+                      "(Libraries → Import library… in a Reference Prompt).")
+    found = hits[0][1]
+    found_kind = found.get("kind") or pathutil._kind_of(found["path"])
+    if found_kind != kind:
+        return None, f"{label} is {'an' if str(found_kind)[:1] in 'aeiou' else 'a'} {found_kind} file, not {'an' if kind[0] in 'aeiou' else 'a'} {kind}."
+    if not os.path.isfile(found["path"]):
+        return None, f"{label}: its file is missing on this computer. Replace it in the library (Edit library)."
+    return found, None
+
+
+class _FromLibrary:
+    """Makes a loader node take a library file by identity instead of a path (see above)."""
+
+    KIND = None
+    # Internal: keeps it out of the node search (the Reference Prompt adds it when needed).
+    DEPRECATED = True
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {"name": ("STRING", {"default": "", "tooltip": "The file's @name in its library."})},
+            "optional": {
+                "asset": ("STRING", {"default": "", "tooltip": "The file's id in the library (kept when a library is exported and imported). "
+                                                                 "Empty or unknown here: the file is found by library and name."}),
+                "library": ("STRING", {"default": "", "tooltip": "The library's name. Empty: any library, if only one has a file of this name."}),
+            },
+        }
+
+    def load(self, name="", asset="", library=""):
+        found, why = _resolve_asset(self.KIND, asset, library, name)
+        if found is None:
+            raise ValueError(why)
+        return super().load(found["path"], found["name"])
+
+    @classmethod
+    def IS_CHANGED(cls, name="", asset="", library=""):
+        found, _ = _resolve_asset(cls.KIND, asset, library, name)
+        return _fingerprint(found["path"]) if found else f"{asset}|{library}|{name}"
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, name="", asset="", library=""):
+        found, why = _resolve_asset(cls.KIND, asset, library, name)
+        return True if found else why
+
+
+class ReferenceLibraryImage(_FromLibrary, ReferenceImage):
+    """A library image, by id / library / name. Added at queue time for a tagged library file."""
+    KIND = "image"
+
+
+class ReferenceLibraryVideo(_FromLibrary, ReferenceVideo):
+    """A library video, by id / library / name."""
+    KIND = "video"
+
+
+class ReferenceLibraryAudio(_FromLibrary, ReferenceAudio):
+    """A library audio file, by id / library / name."""
+    KIND = "audio"
+
+
 class ReferencePrompt:
     """Multiline prompt with @tag autocomplete over the shared asset library.
 

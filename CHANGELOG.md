@@ -4,6 +4,23 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
+## 0.1.10
+
+- **Queued and exported API prompts no longer hold disk paths.** Each tagged library file is sent as a
+  `ReferenceLibraryImage` / `Video` / `Audio` node that names it by library, name and id; the server looks
+  the file up in its own library. An **Export (API)** file can be shared without showing your folder names,
+  and runs on any ComfyUI where the library was imported (ids survive export / import), headless included.
+  See "Run a workflow without the interface (API)" in the README. Older API files with paths still run.
+- Queueing from another machine (`--listen`) now sends library files correctly (it only ever saw file names).
+- **Fixed:** a Reference Prompt feeding both a model with `image_1`, `image_2`… inputs and a model with one
+  `images` input (as in the example workflow) sent its raw `@tags` to the second one. It now gets
+  "image 1", "image 2"… like the first.
+- **Fixed:** exporting a library failed when one of its files was dated before 1980.
+- The example now includes its **Export (API)** file (`example_workflows/api/`), and the screenshot tool
+  takes two new images for export and import.
+- Development: `node tests/bind_example.mjs` runs the queue-time binding on the example workflow outside
+  ComfyUI.
+
 ## 0.1.9
 
 - **Share libraries: export and import.** The export button next to a library in the **Libraries** menu
