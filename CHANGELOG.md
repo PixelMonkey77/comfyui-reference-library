@@ -4,6 +4,11 @@
 > your own risk: you are responsible for how you use it and for any damage or loss it may cause (to files,
 > libraries, workflows, API credits or anything else). The author accepts no liability.
 
+## 0.1.11
+
+- **Windows:** exporting libraries now opens the Explorer-style folder picker (address bar, search, quick
+  access), like the file picker for adding files, in place of the old tree-only window.
+
 ## 0.1.10
 
 - **Queued and exported API prompts no longer hold disk paths.** Each tagged library file is sent as a
