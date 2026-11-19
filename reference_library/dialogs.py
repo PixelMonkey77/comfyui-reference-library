@@ -82,16 +82,103 @@ end run
 # The same three helpers for picking a folder (where an export is saved).
 _FOLDER_PROMPT = "Reference Library: choose the folder to save the export in"
 
+# Windows: the Explorer-style folder picker (the one "Open" dialogs use, with the address bar, search and
+# quick access), reached through its COM interface since Windows PowerShell's own FolderBrowserDialog is the
+# old tree-only window. That old window is still the fallback if the helper class can't be compiled here.
 _PS_FOLDER_DIALOG = r"""
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
 Add-Type -AssemblyName System.Windows.Forms
 $owner = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true }
-$d = New-Object System.Windows.Forms.FolderBrowserDialog
-$d.Description = '%s'
-$d.ShowNewFolderButton = $true
-if ($env:LI_INIT -and (Test-Path -LiteralPath $env:LI_INIT -PathType Container)) { $d.SelectedPath = $env:LI_INIT }
-if ($d.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($d.SelectedPath) }
-""" % _FOLDER_PROMPT
+$title = '@PROMPT@'
+$init = ''
+if ($env:LI_INIT -and (Test-Path -LiteralPath $env:LI_INIT -PathType Container)) { $init = $env:LI_INIT }
+$src = @'
+using System;
+using System.Runtime.InteropServices;
+public static class LiFolderPicker {
+    [ComImport, Guid("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7")]
+    class FileOpenDialog { }
+
+    [ComImport, Guid("42f85136-db7e-439c-85f1-e4075d135fc8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IFileDialog {
+        [PreserveSig] int Show(IntPtr owner);
+        void SetFileTypes(uint count, IntPtr specs);
+        void SetFileTypeIndex(uint index);
+        void GetFileTypeIndex(out uint index);
+        void Advise(IntPtr events, out uint cookie);
+        void Unadvise(uint cookie);
+        void SetOptions(uint options);
+        void GetOptions(out uint options);
+        void SetDefaultFolder(IShellItem item);
+        void SetFolder(IShellItem item);
+        void GetFolder(out IShellItem item);
+        void GetCurrentSelection(out IShellItem item);
+        void SetFileName([MarshalAs(UnmanagedType.LPWStr)] string name);
+        void GetFileName([MarshalAs(UnmanagedType.LPWStr)] out string name);
+        void SetTitle([MarshalAs(UnmanagedType.LPWStr)] string title);
+        void SetOkButtonLabel([MarshalAs(UnmanagedType.LPWStr)] string text);
+        void SetFileNameLabel([MarshalAs(UnmanagedType.LPWStr)] string label);
+        void GetResult(out IShellItem item);
+        void AddPlace(IShellItem item, int place);
+        void SetDefaultExtension([MarshalAs(UnmanagedType.LPWStr)] string extension);
+        void Close(int hr);
+        void SetClientGuid(ref Guid guid);
+        void ClearClientData();
+        void SetFilter(IntPtr filter);
+    }
+
+    [ComImport, Guid("43826D1E-E718-42EE-BC55-A1E261C37BFE"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IShellItem {
+        void BindToHandler(IntPtr context, ref Guid handler, ref Guid iid, out IntPtr result);
+        void GetParent(out IShellItem parent);
+        void GetDisplayName(uint form, [MarshalAs(UnmanagedType.LPWStr)] out string name);
+        void GetAttributes(uint mask, out uint attributes);
+        void Compare(IShellItem other, uint hint, out int order);
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+    static extern void SHCreateItemFromParsingName(string path, IntPtr context, ref Guid iid, [MarshalAs(UnmanagedType.Interface)] out IShellItem item);
+
+    // The picked folder's path, or null if the dialog was cancelled.
+    public static string Pick(IntPtr owner, string title, string start) {
+        IFileDialog dialog = (IFileDialog)new FileOpenDialog();
+        uint options;
+        dialog.GetOptions(out options);
+        dialog.SetOptions(options | 0x20 | 0x40 | 0x800);  // pick folders, file system only, the path must exist
+        dialog.SetTitle(title);
+        if (!String.IsNullOrEmpty(start)) {
+            try {
+                Guid iid = typeof(IShellItem).GUID;
+                IShellItem folder;
+                SHCreateItemFromParsingName(start, IntPtr.Zero, ref iid, out folder);
+                dialog.SetFolder(folder);
+            } catch (Exception) { }  // opens where Windows last had it
+        }
+        if (dialog.Show(owner) != 0) return null;
+        IShellItem picked;
+        dialog.GetResult(out picked);
+        string path;
+        picked.GetDisplayName(0x80058000, out path);  // the file system path
+        return path;
+    }
+}
+'@
+$picked = $null
+$modern = $false
+try {
+    Add-Type -TypeDefinition $src -ErrorAction Stop
+    $picked = [LiFolderPicker]::Pick($owner.Handle, $title, $init)
+    $modern = $true
+} catch { }
+if (-not $modern) {
+    $d = New-Object System.Windows.Forms.FolderBrowserDialog
+    $d.Description = $title
+    $d.ShowNewFolderButton = $true
+    if ($init) { $d.SelectedPath = $init }
+    if ($d.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { $picked = $d.SelectedPath }
+}
+if ($picked) { [Console]::Out.Write($picked) }
+""".replace("@PROMPT@", _FOLDER_PROMPT)
 
 _TK_FOLDER_DIALOG = r"""
 import os, sys, tkinter as tk

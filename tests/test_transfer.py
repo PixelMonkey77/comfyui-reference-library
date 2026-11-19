@@ -343,3 +343,8 @@ def test_folder_dialog_command(pack, monkeypatch):
         assert pack.dialogs._open_file_dialog(os.getcwd(), folder=True) == ["/picked/folder"]
         assert script in ran["cmd"] and ran["env"]["LI_INIT"] == os.getcwd()
         assert pack.dialogs._FOLDER_PROMPT in script
+    # Windows: the Explorer-style picker first, the old tree window only if that can't be set up.
+    ps = pack.dialogs._PS_FOLDER_DIALOG
+    assert "@PROMPT@" not in ps and ps.count("@'") == 1 and ps.count("\n'@\n") == 1, "one C# here-string, closed at a line start"
+    assert ps.index("LiFolderPicker]::Pick") < ps.index("FolderBrowserDialog") and "0x20 | 0x40 | 0x800" in ps
+    assert len(ps) < 8000, "passed on the command line: keep it well under Windows' limit"
